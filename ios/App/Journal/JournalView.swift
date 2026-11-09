@@ -55,12 +55,19 @@ final class JournalModel {
         return (t, RichText.plain(b))
     }
 
-    /// The patch for saving an entry, encrypting when the notebook is locked.
-    func patch(title: String, body: String, in nb: Notebook) throws -> [String: Any] {
+    /// Title and body ready to store, encrypted when the notebook is locked.
+    struct Stored: Sendable {
+        var title: String
+        var body: String
+        var encrypted: Bool
+        var json: [String: Any] { ["title": title, "body": body, "encrypted": encrypted] }
+    }
+
+    func stored(title: String, body: String, in nb: Notebook) throws -> Stored {
         let html = RichText.html(body)
-        guard nb.locked else { return ["title": title, "body": html, "encrypted": false] }
+        guard nb.locked else { return Stored(title: title, body: html, encrypted: false) }
         guard let key = keys[nb.id] else { throw APIError.server(status: 423, message: "Unlock the notebook first.") }
-        return ["title": try JournalCrypto.encrypt(title, key: key), "body": try JournalCrypto.encrypt(html, key: key), "encrypted": true]
+        return Stored(title: try JournalCrypto.encrypt(title, key: key), body: try JournalCrypto.encrypt(html, key: key), encrypted: true)
     }
 }
 
@@ -254,7 +261,8 @@ struct EntryEditor: View {
         let t = title.trimmingCharacters(in: .whitespaces), b = body_.trimmingCharacters(in: .whitespacesAndNewlines)
         if noteId == nil, t.isEmpty, b.isEmpty { dismiss(); return }
         do {
-            var patch = try m.patch(title: t, body: b, in: notebook)
+            let stored = try m.stored(title: t, body: b, in: notebook)
+            var patch = stored.json
             if noteId == nil {
                 patch["notebook_id"] = notebook.id
                 patch["kind"] = notebook.kind.rawValue
