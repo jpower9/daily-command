@@ -1,0 +1,4 @@
+// Copy to Local.xcconfig (ignored by git) and fill in.
+// The Supabase *publishable* key (sb_publishable_…) for the ExecClone Customer Database project.
+// It grants nothing by itself; every action is authorized by the signed-in user's token.
+DC_SUPABASE_PUBLISHABLE_KEY = sb_publishable_xxx

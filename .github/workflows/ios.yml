@@ -1,0 +1,57 @@
+name: iOS
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: DailyCommandKit tests
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: swift test
+        working-directory: ios/DailyCommandKit
+        run: swift test --parallel
+
+  app:
+    name: App builds (simulator)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        working-directory: ios
+        run: xcodegen generate
+      - name: Build
+        working-directory: ios
+        # No Local.xcconfig in CI: the app builds, and ServiceEnvironment.fromBundle() returns nil
+        # at runtime (the "not configured" screen). Nothing key-like is needed to compile.
+        run: |
+          xcodebuild build \
+            -project DailyCommand.xcodeproj -scheme DailyCommand \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY= DEVELOPMENT_TEAM=
+
+  brand:
+    name: Brand check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No runtime or clone names in client surfaces
+        # Canon invariant 12: client surfaces are 100% ExecClone. Daily Command also never mentions
+        # clones or staff names — it is a standalone planner.
+        run: |
+          ! grep -rniE 'openclaw|clawd(bot)?|\bJ4\b|\bclone\b' ios/App ios/DailyCommandKit/Sources ios/project.yml

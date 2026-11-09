@@ -1,0 +1,13 @@
+# Xcode
+ios/DailyCommand.xcodeproj/
+ios/Config/Local.xcconfig
+ios/Config/DailyCommand-Info.plist
+ios/DerivedData/
+ios/build/
+*.xcuserstate
+xcuserdata/
+.DS_Store
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved
