@@ -1,0 +1,7 @@
+// Shared build settings. Service values come from Local.xcconfig (not in git);
+// copy Local.xcconfig.example and fill it in. Without them the app can't sign in.
+MARKETING_VERSION = 2026.11.1
+CURRENT_PROJECT_VERSION = 1
+DC_SUPABASE_URL = https:/$()/llommlrqryqaqmfkaqry.supabase.co
+DC_SUPABASE_PUBLISHABLE_KEY =
+#include? "Local.xcconfig"

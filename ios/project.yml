@@ -1,0 +1,97 @@
+name: DailyCommand
+options:
+  bundleIdPrefix: com.execclone
+  deploymentTarget:
+    iOS: "18.0"
+  xcodeVersion: "27.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+
+configFiles:
+  Debug: Config/Base.xcconfig
+  Release: Config/Base.xcconfig
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    DEVELOPMENT_TEAM: G53Y6B5LN4
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+
+packages:
+  DailyCommandKit:
+    path: DailyCommandKit
+
+targets:
+  DailyCommand:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: Resources
+    dependencies:
+      - package: DailyCommandKit
+        product: DailyCommandCore
+    settings:
+      base:
+        PRODUCT_NAME: Daily Command
+        PRODUCT_BUNDLE_IDENTIFIER: com.execclone.dailycommand
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    entitlements:
+      path: Config/DailyCommand.entitlements
+      properties:
+        # Sign-in codes are entered by hand (no passkeys yet); no shared containers.
+        keychain-access-groups: [$(AppIdentifierPrefix)com.execclone.dailycommand]
+    info:
+      path: Config/DailyCommand-Info.plist
+      properties:
+        CFBundleDisplayName: Daily Command
+        CFBundleName: Daily Command
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleIconName: AppIcon
+        CFBundleDevelopmentRegion: en
+        DCSupabaseURL: $(DC_SUPABASE_URL)
+        DCSupabasePublishableKey: $(DC_SUPABASE_PUBLISHABLE_KEY)
+        DCKeychainGroup: $(AppIdentifierPrefix)com.execclone.dailycommand
+        CFBundleURLTypes:
+          - CFBundleURLName: com.execclone.dailycommand
+            CFBundleURLSchemes: [dailycommand]
+        # Journal encryption is standard AES-GCM / PBKDF2 (exempt under 5D992 note 4 / mass-market).
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSFaceIDUsageDescription: Daily Command uses Face ID to reopen a locked journal without retyping its passphrase.
+
+schemes:
+  DailyCommand:
+    build:
+      targets:
+        DailyCommand: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: true
+      targets:
+        - package: DailyCommandKit/DailyCommandCoreTests
+    archive:
+      config: Release
