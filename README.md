@@ -43,8 +43,8 @@ builds the app for the simulator, and fails if any runtime or staff name shows u
 ## TestFlight
 
 Actions → **TestFlight** → Run workflow (from `main`). It archives on a GitHub Mac with the team's App Store
-Connect API key and uploads; the build number is the run number. One-time repo settings: secrets `ASC_KEY_P8`,
-`ASC_KEY_ID`, `ASC_ISSUER_ID`; variable `DC_SUPABASE_PUBLISHABLE_KEY`. The same `ios/scripts/release.sh`
+Connect API key and uploads; the build number is the run number. One-time repo settings: secret `ASC_KEY_P8`;
+variables `ASC_KEY_ID`, `ASC_ISSUER_ID`, `DC_SUPABASE_PUBLISHABLE_KEY`. The same `ios/scripts/release.sh`
 runs from a Mac in Terminal.
 
 ## Journal encryption
