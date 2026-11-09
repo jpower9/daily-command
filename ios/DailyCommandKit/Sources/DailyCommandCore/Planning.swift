@@ -23,7 +23,7 @@ public enum Metric: String, Sendable, CaseIterable {
 }
 
 public enum Planning {
-    nonisolated(unsafe) static let utc: Calendar = {
+    public static let utc: Calendar = {
         var c = Calendar(identifier: .gregorian)
         c.timeZone = TimeZone(identifier: "UTC")!
         c.firstWeekday = 2
@@ -74,7 +74,7 @@ public enum Planning {
         let y = Int(q.prefix(4)) ?? 2000, n = Int(q.suffix(1)) ?? 1
         let sm = (n - 1) * 3 + 1
         let start = String(format: "%04d-%02d-01", y, sm)
-        let end = utc.date(from: DateComponents(year: y, month: sm + 3, day: 0)).map(ymd) ?? start
+        let end = utc.date(from: DateComponents(year: y, month: sm + 3, day: 0)).map { ymd($0) } ?? start
         return (start, end)
     }
 

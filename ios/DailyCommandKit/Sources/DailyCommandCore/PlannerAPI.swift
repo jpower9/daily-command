@@ -235,6 +235,6 @@ public final class PlannerAPI: @unchecked Sendable {
 extension ServerDate {
     /// ISO-8601 UTC with milliseconds, the form the server validates and stores.
     public static func iso(_ date: Date) -> String {
-        date.formatted(Date.ISO8601FormatStyle(includingFractionalSeconds: true).timeZone(.gmt))
+        date.formatted(Date.ISO8601FormatStyle(includingFractionalSeconds: true, timeZone: TimeZone(identifier: "UTC")!))
     }
 }
