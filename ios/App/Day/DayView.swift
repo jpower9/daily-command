@@ -32,7 +32,7 @@ final class DayModel {
         await load(api)
     }
 
-    func saveDay(_ patch: [String: Any], _ api: PlannerAPI) async {
+    func saveDay(_ patch: sending [String: Any], _ api: PlannerAPI) async {
         do {
             try await api.saveDay(date, patch: patch)
             await load(api)
@@ -62,7 +62,7 @@ final class DayModel {
         if on, top3.count >= 3 { error = "Top 3 is full. Take one off first."; return }
         let pos = on ? ((1...3).first { p in !top3.contains { $0.top3Position == p } } ?? 3) : nil
         do {
-            try await api.saveTask(id: t.id, patch: ["is_top3": on, "top3_position": pos ?? NSNull()])
+            try await api.saveTask(id: t.id, patch: ["is_top3": on, "top3_position": orNull(pos)])
             await load(api)
         } catch { self.error = error.localizedDescription }
     }
@@ -279,7 +279,7 @@ struct CheckInCard: View {
                         if let v = cmp.value { Text("\(cmp.label): \(v)").font(DC.Font.small).foregroundStyle(DC.dim) }
                     }
                     Scale(value: m.day.metric(metric, phase)) { v in
-                        Task { await m.saveDay([metric.column(phase): v ?? NSNull(), "\(phase.rawValue)_checked_at": ServerDate.iso(Date())], api) }
+                        Task { await m.saveDay([metric.column(phase): orNull(v), "\(phase.rawValue)_checked_at": ServerDate.iso(Date())], api) }
                     }
                 }
             }
@@ -294,7 +294,7 @@ struct CheckInCard: View {
                 }
                 Toggle("Workout planned", isOn: Binding(get: { m.day.workoutPlanned }, set: { v in Task { await m.saveDay(["workout_planned": v], api) } }))
                     .font(DC.Font.small)
-                EditRow(label: "Intention for the day", value: m.day.intention) { v in await m.saveDay(["intention": v.isEmpty ? NSNull() : v], api) }
+                EditRow(label: "Intention for the day", value: m.day.intention) { v in await m.saveDay(["intention": orNull(v.isEmpty ? nil : v)], api) }
             }
         }
     }
@@ -339,12 +339,12 @@ struct CloseOutCard: View {
 
     var body: some View {
         Card("Close out") {
-            EditRow(label: "Win", value: m.day.win) { v in await m.saveDay(["win": v.isEmpty ? NSNull() : v], api) }
-            EditRow(label: "Lesson", value: m.day.lesson) { v in await m.saveDay(["lesson": v.isEmpty ? NSNull() : v], api) }
-            EditRow(label: "One thing for tomorrow", value: m.day.tomorrowOne) { v in await m.saveDay(["tomorrow_one": v.isEmpty ? NSNull() : v], api) }
+            EditRow(label: "Win", value: m.day.win) { v in await m.saveDay(["win": orNull(v.isEmpty ? nil : v)], api) }
+            EditRow(label: "Lesson", value: m.day.lesson) { v in await m.saveDay(["lesson": orNull(v.isEmpty ? nil : v)], api) }
+            EditRow(label: "One thing for tomorrow", value: m.day.tomorrowOne) { v in await m.saveDay(["tomorrow_one": orNull(v.isEmpty ? nil : v)], api) }
             VStack(alignment: .leading, spacing: 6) {
                 Text("Day rating").font(DC.Font.small).foregroundStyle(DC.text2)
-                Scale(value: m.day.dayRating) { v in Task { await m.saveDay(["day_rating": v ?? NSNull()], api) } }
+                Scale(value: m.day.dayRating) { v in Task { await m.saveDay(["day_rating": orNull(v)], api) } }
             }
             Toggle("Workout done", isOn: Binding(get: { m.day.workoutDone }, set: { v in Task { await m.saveDay(["workout_done": v], api) } }))
                 .font(DC.Font.small)

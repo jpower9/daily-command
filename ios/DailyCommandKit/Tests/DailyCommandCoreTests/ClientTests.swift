@@ -123,6 +123,17 @@ struct PlannerAPITests {
 }
 
 struct EnvironmentTests {
+    @Test func jsonNullBecomesNSNullEverywhere() async throws {
+        let t = FakeTransport([(#"{"ok":true}"#, 200)])
+        let api = PlannerAPITests().api(t)
+        let none: String? = nil
+        try await api.saveTask(id: "t1", patch: ["due_date": orNull(none), "title": "x", "nested": ["a": JSONNull.null]])
+        let patch = try #require(t.calls.first?.body["patch"] as? [String: Any])
+        #expect(patch["due_date"] is NSNull)
+        #expect(patch["title"] as? String == "x")
+        #expect((patch["nested"] as? [String: Any])?["a"] is NSNull)
+    }
+
     @Test func isoTimestampsAreUTCWithMillis() {
         let d = Date(timeIntervalSince1970: 1_762_700_000.5)
         #expect(ServerDate.iso(d) == "2025-11-09T14:53:20.500Z")

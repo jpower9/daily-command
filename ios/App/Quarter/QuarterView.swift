@@ -40,8 +40,8 @@ struct QuarterView: View {
                 } else if let api = app.api, let p = m.payload {
                     scorecard(Planning.scorecard(p))
                     Card("Theme") {
-                        EditRow(label: "Quarter theme", value: p.record?.theme) { v in await m.run(api) { try await api.saveQuarter(m.quarter, patch: ["theme": v.isEmpty ? NSNull() : v]) } }
-                        EditRow(label: "Stop doing", value: p.record?.stopDoing) { v in await m.run(api) { try await api.saveQuarter(m.quarter, patch: ["stop_doing": v.isEmpty ? NSNull() : v]) } }
+                        EditRow(label: "Quarter theme", value: p.record?.theme) { v in await m.run(api) { try await api.saveQuarter(m.quarter, patch: ["theme": orNull(v.isEmpty ? nil : v)]) } }
+                        EditRow(label: "Stop doing", value: p.record?.stopDoing) { v in await m.run(api) { try await api.saveQuarter(m.quarter, patch: ["stop_doing": orNull(v.isEmpty ? nil : v)]) } }
                     }
                     Card("Quarter rocks") {
                         if p.rocks.isEmpty {
@@ -55,7 +55,7 @@ struct QuarterView: View {
                         }
                     }
                     Card("Review") {
-                        EditRow(label: "Quarter review", value: p.record?.review) { v in await m.run(api) { try await api.saveQuarter(m.quarter, patch: ["review": v.isEmpty ? NSNull() : v]) } }
+                        EditRow(label: "Quarter review", value: p.record?.review) { v in await m.run(api) { try await api.saveQuarter(m.quarter, patch: ["review": orNull(v.isEmpty ? nil : v)]) } }
                         if p.record?.closedAt == nil {
                             Button { Task { await m.run(api) { try await api.saveQuarter(m.quarter, patch: ["closed_at": ServerDate.iso(Date())]) } } } label: {
                                 Text("Close the quarter").frame(maxWidth: .infinity)
@@ -140,7 +140,7 @@ struct QuarterRockRow: View {
                         ForEach(goals) { g in
                             Button(g.title.isEmpty ? "Untitled goal" : g.title) { Task { await m.run(api) { try await api.saveQuarterRock(id: rock.id, patch: ["goal_id": g.id]) } } }
                         }
-                        Button("No goal") { Task { await m.run(api) { try await api.saveQuarterRock(id: rock.id, patch: ["goal_id": NSNull()]) } } }
+                        Button("No goal") { Task { await m.run(api) { try await api.saveQuarterRock(id: rock.id, patch: ["goal_id": JSONNull.null]) } } }
                     }
                     Button("Drop rock", role: .destructive) { Task { await m.run(api) { try await api.saveQuarterRock(id: rock.id, patch: ["status": "dropped"]) } } }
                 } label: { Image(systemName: "ellipsis").foregroundStyle(DC.dim) }

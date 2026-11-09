@@ -114,16 +114,16 @@ struct GoalDetail: View {
             VStack(spacing: 14) {
                 Card("Goal") {
                     EditRow(label: "Title", value: goal.title) { v in await m.run(api) { try await api.saveGoal(id: goal.id, patch: ["title": v]) } }
-                    EditRow(label: "Area", value: goal.area) { v in await m.run(api) { try await api.saveGoal(id: goal.id, patch: ["area": v.isEmpty ? NSNull() : v]) } }
-                    EditRow(label: "From", value: goal.fromValue) { v in await m.run(api) { try await api.saveGoal(id: goal.id, patch: ["from_value": v.isEmpty ? NSNull() : v]) } }
-                    EditRow(label: "To", value: goal.toValue) { v in await m.run(api) { try await api.saveGoal(id: goal.id, patch: ["to_value": v.isEmpty ? NSNull() : v]) } }
-                    EditRow(label: "By (yyyy-mm-dd)", value: goal.byDate) { v in await m.run(api) { try await api.saveGoal(id: goal.id, patch: ["by_date": v.isEmpty ? NSNull() : v]) } }
-                    EditRow(label: "Why", value: goal.why) { v in await m.run(api) { try await api.saveGoal(id: goal.id, patch: ["why": v.isEmpty ? NSNull() : v]) } }
+                    EditRow(label: "Area", value: goal.area) { v in await m.run(api) { try await api.saveGoal(id: goal.id, patch: ["area": orNull(v.isEmpty ? nil : v)]) } }
+                    EditRow(label: "From", value: goal.fromValue) { v in await m.run(api) { try await api.saveGoal(id: goal.id, patch: ["from_value": orNull(v.isEmpty ? nil : v)]) } }
+                    EditRow(label: "To", value: goal.toValue) { v in await m.run(api) { try await api.saveGoal(id: goal.id, patch: ["to_value": orNull(v.isEmpty ? nil : v)]) } }
+                    EditRow(label: "By (yyyy-mm-dd)", value: goal.byDate) { v in await m.run(api) { try await api.saveGoal(id: goal.id, patch: ["by_date": orNull(v.isEmpty ? nil : v)]) } }
+                    EditRow(label: "Why", value: goal.why) { v in await m.run(api) { try await api.saveGoal(id: goal.id, patch: ["why": orNull(v.isEmpty ? nil : v)]) } }
                 }
                 Card("Measure") {
                     numberRow("Start", goal.startValue, "start_value")
                     numberRow("Target", goal.targetValue, "target_value")
-                    EditRow(label: "Unit", value: goal.unit) { v in await m.run(api) { try await api.saveGoal(id: goal.id, patch: ["unit": v.isEmpty ? NSNull() : v]) } }
+                    EditRow(label: "Unit", value: goal.unit) { v in await m.run(api) { try await api.saveGoal(id: goal.id, patch: ["unit": orNull(v.isEmpty ? nil : v)]) } }
                     Divider().overlay(DC.line)
                     Text("Log progress").font(DC.Font.small).foregroundStyle(DC.text2)
                     HStack {
@@ -176,7 +176,7 @@ struct GoalDetail: View {
     private func numberRow(_ label: String, _ value: Double?, _ key: String) -> some View {
         EditRow(label: label, value: value.map { $0 == $0.rounded() ? String(Int($0)) : String($0) }) { v in
             let d = Double(v.replacingOccurrences(of: ",", with: "."))
-            await m.run(api) { try await api.saveGoal(id: goal.id, patch: [key: d ?? NSNull()]) }
+            await m.run(api) { try await api.saveGoal(id: goal.id, patch: [key: orNull(d)]) }
         }
     }
 }

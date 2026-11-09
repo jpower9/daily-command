@@ -44,7 +44,7 @@ struct WeekView: View {
                     ProgressView().frame(maxWidth: .infinity).padding(40)
                 } else if let api = app.api, let p = m.payload {
                     Card("Theme") {
-                        EditRow(label: "This week's theme", value: p.week?.theme) { v in await m.run(api) { try await api.saveWeek(m.weekStart, patch: ["theme": v.isEmpty ? NSNull() : v]) } }
+                        EditRow(label: "This week's theme", value: p.week?.theme) { v in await m.run(api) { try await api.saveWeek(m.weekStart, patch: ["theme": orNull(v.isEmpty ? nil : v)]) } }
                     }
                     daysStrip(p)
                     Card("Roles and rocks") {
@@ -65,9 +65,9 @@ struct WeekView: View {
                         Button { addingRole.toggle() } label: { Image(systemName: addingRole ? "xmark" : "plus") }
                     }
                     Card("Review") {
-                        EditRow(label: "Wins", value: p.week?.wins) { v in await m.run(api) { try await api.saveWeek(m.weekStart, patch: ["wins": v.isEmpty ? NSNull() : v]) } }
-                        EditRow(label: "Biggest risk next week", value: p.week?.risk) { v in await m.run(api) { try await api.saveWeek(m.weekStart, patch: ["risk": v.isEmpty ? NSNull() : v]) } }
-                        EditRow(label: "Carry forward", value: p.week?.carryForward) { v in await m.run(api) { try await api.saveWeek(m.weekStart, patch: ["carry_forward": v.isEmpty ? NSNull() : v]) } }
+                        EditRow(label: "Wins", value: p.week?.wins) { v in await m.run(api) { try await api.saveWeek(m.weekStart, patch: ["wins": orNull(v.isEmpty ? nil : v)]) } }
+                        EditRow(label: "Biggest risk next week", value: p.week?.risk) { v in await m.run(api) { try await api.saveWeek(m.weekStart, patch: ["risk": orNull(v.isEmpty ? nil : v)]) } }
+                        EditRow(label: "Carry forward", value: p.week?.carryForward) { v in await m.run(api) { try await api.saveWeek(m.weekStart, patch: ["carry_forward": orNull(v.isEmpty ? nil : v)]) } }
                         if p.week?.closedAt == nil {
                             Button {
                                 Task { await m.run(api) {

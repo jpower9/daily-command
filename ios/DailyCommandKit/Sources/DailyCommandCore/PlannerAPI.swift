@@ -22,8 +22,8 @@ public final class PlannerAPI: @unchecked Sendable {
     // MARK: Transport
 
     @discardableResult
-    public func call(_ action: String, _ params: [String: Any] = [:]) async throws -> JSON {
-        var payload = params
+    public func call(_ action: String, _ params: sending [String: Any] = [:]) async throws -> JSON {
+        var payload = JSONNull.resolve(params) as? [String: Any] ?? [:]
         payload["action"] = action
         return try await perform(payload: payload, retried: false)
     }
@@ -57,13 +57,13 @@ public final class PlannerAPI: @unchecked Sendable {
         return DayPayload(try await call("plannerDay", p))
     }
 
-    public func saveDay(_ date: String, patch: [String: Any]) async throws {
+    public func saveDay(_ date: String, patch: sending [String: Any]) async throws {
         try await call("plannerSaveDay", ["date": date, "patch": patch])
     }
 
     /// Creates (id nil) or updates a task. Returns the task id.
     @discardableResult
-    public func saveTask(id: String?, patch: [String: Any]) async throws -> String {
+    public func saveTask(id: String?, patch: sending [String: Any]) async throws -> String {
         var p: [String: Any] = ["patch": patch]
         if let id { p["id"] = id }
         let r = try await call("plannerTaskSave", p)
@@ -135,19 +135,19 @@ public final class PlannerAPI: @unchecked Sendable {
         return WeekPayload(try await call("plannerWeek", p))
     }
 
-    public func saveWeek(_ weekStart: String, patch: [String: Any]) async throws {
+    public func saveWeek(_ weekStart: String, patch: sending [String: Any]) async throws {
         try await call("plannerWeekSave", ["weekStart": weekStart, "patch": patch])
     }
 
     @discardableResult
-    public func saveRole(id: String?, patch: [String: Any]) async throws -> String {
+    public func saveRole(id: String?, patch: sending [String: Any]) async throws -> String {
         var p: [String: Any] = ["patch": patch]
         if let id { p["id"] = id }
         return try await call("plannerRoleSave", p)["id"].string ?? id ?? ""
     }
 
     @discardableResult
-    public func saveRock(id: String?, patch: [String: Any]) async throws -> String {
+    public func saveRock(id: String?, patch: sending [String: Any]) async throws -> String {
         var p: [String: Any] = ["patch": patch]
         if let id { p["id"] = id }
         return try await call("plannerRockSave", p)["id"].string ?? id ?? ""
@@ -173,12 +173,12 @@ public final class PlannerAPI: @unchecked Sendable {
         return QuarterPayload(try await call("plannerQuarter", p))
     }
 
-    public func saveQuarter(_ quarter: String, patch: [String: Any]) async throws {
+    public func saveQuarter(_ quarter: String, patch: sending [String: Any]) async throws {
         try await call("plannerQuarterSave", ["quarter": quarter, "patch": patch])
     }
 
     @discardableResult
-    public func saveQuarterRock(id: String?, patch: [String: Any]) async throws -> String {
+    public func saveQuarterRock(id: String?, patch: sending [String: Any]) async throws -> String {
         var p: [String: Any] = ["patch": patch]
         if let id { p["id"] = id }
         return try await call("plannerQuarterRockSave", p)["id"].string ?? id ?? ""
@@ -193,7 +193,7 @@ public final class PlannerAPI: @unchecked Sendable {
     }
 
     @discardableResult
-    public func saveGoal(id: String?, patch: [String: Any]) async throws -> String {
+    public func saveGoal(id: String?, patch: sending [String: Any]) async throws -> String {
         var p: [String: Any] = ["patch": patch]
         if let id { p["id"] = id }
         return try await call("plannerGoalSave", p)["id"].string ?? id ?? ""
@@ -214,7 +214,7 @@ public final class PlannerAPI: @unchecked Sendable {
     }
 
     @discardableResult
-    public func saveNotebook(id: String?, patch: [String: Any]) async throws -> String {
+    public func saveNotebook(id: String?, patch: sending [String: Any]) async throws -> String {
         var p: [String: Any] = ["patch": patch]
         if let id { p["id"] = id }
         return try await call("plannerNotebookSave", p)["id"].string ?? id ?? ""
@@ -225,11 +225,32 @@ public final class PlannerAPI: @unchecked Sendable {
     }
 
     @discardableResult
-    public func saveNote(id: String?, patch: [String: Any]) async throws -> String {
+    public func saveNote(id: String?, patch: sending [String: Any]) async throws -> String {
         var p: [String: Any] = ["patch": patch]
         if let id { p["id"] = id }
         return try await call("plannerNoteSave", p)["id"].string ?? id ?? ""
     }
+}
+
+/// A JSON `null` that is Sendable, for patches that clear a field (`["due_date": orNull(date)]`).
+/// `PlannerAPI.call` turns it into `NSNull` for serialization.
+public enum JSONNull: Sendable {
+    case null
+
+    static func resolve(_ any: Any) -> Any {
+        switch any {
+        case is JSONNull: NSNull()
+        case let d as [String: Any]: d.mapValues(resolve)
+        case let a as [Any]: a.map(resolve)
+        default: any
+        }
+    }
+}
+
+/// `value`, or JSON null when nil.
+public func orNull<T: Sendable>(_ value: T?) -> any Sendable {
+    if let value { return value }
+    return JSONNull.null
 }
 
 extension ServerDate {
