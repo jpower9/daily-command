@@ -3,11 +3,13 @@ import SwiftUI
 @main
 struct DailyCommandApp: App {
     @State private var model = AppModel()
+    @State private var nav = Navigator()
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environment(model)
+                .environment(nav)
                 .preferredColorScheme(.dark)
                 .tint(DC.gold)
         }
@@ -36,13 +38,15 @@ struct RootView: View {
 }
 
 struct MainTabs: View {
+    @Environment(Navigator.self) private var nav
     var body: some View {
-        TabView {
-            Tab("Day", systemImage: "sun.max") { NavigationStack { DayView() } }
-            Tab("Week", systemImage: "calendar") { NavigationStack { WeekView() } }
-            Tab("Quarter", systemImage: "chart.bar") { NavigationStack { QuarterView() } }
-            Tab("Goals", systemImage: "target") { NavigationStack { GoalsView() } }
-            Tab("Journal", systemImage: "book.closed") { NavigationStack { JournalView() } }
+        @Bindable var nav = nav
+        TabView(selection: $nav.tab) {
+            Tab("Day", systemImage: "sun.max", value: AppTab.day) { NavigationStack { DayView() } }
+            Tab("Week", systemImage: "calendar", value: AppTab.week) { NavigationStack { WeekView() } }
+            Tab("Quarter", systemImage: "chart.bar", value: AppTab.quarter) { NavigationStack { QuarterView() } }
+            Tab("Goals", systemImage: "target", value: AppTab.goals) { NavigationStack { GoalsView() } }
+            Tab("Journal", systemImage: "book.closed", value: AppTab.journal) { NavigationStack { JournalView() } }
         }
         .toolbarBackground(DC.panel, for: .tabBar)
     }

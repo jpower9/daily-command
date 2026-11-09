@@ -122,6 +122,20 @@ struct PlannerAPITests {
     }
 }
 
+struct SearchTests {
+    @Test func parsesHitsAndSendsTheTerm() async throws {
+        let t = FakeTransport([(#"{"q":"leads","results":[{"kind":"task","id":"t1","title":"Leads list","date":"2026-11-03","extra":"open"},{"kind":"quarterRock","id":"r1","title":"Build the engine","date":"2026-10-01","extra":"2026-Q4"},{"kind":"mystery","id":"x","title":"?","date":"2026-01-01","extra":null}]}"#, 200)])
+        let hits = try await PlannerAPITests().api(t).search("leads")
+        #expect(t.calls.first?.body["action"] as? String == "plannerSearch")
+        #expect(t.calls.first?.body["q"] as? String == "leads")
+        #expect(hits.count == 3)
+        #expect(hits[0].kind == .task && hits[0].extra == "open")
+        #expect(hits[1].kind == .quarterRock && hits[1].kind.label == "Q rock")
+        #expect(hits[2].kind == .task)   // unknown kinds fall back rather than drop the list
+        #expect(hits[2].extra == nil)
+    }
+}
+
 struct EnvironmentTests {
     @Test func jsonNullBecomesNSNullEverywhere() async throws {
         let t = FakeTransport([(#"{"ok":true}"#, 200)])

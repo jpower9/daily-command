@@ -527,3 +527,41 @@ public struct JournalPayload: Sendable, Equatable {
         notes = j["notes"].array.map(Note.init)
     }
 }
+
+// MARK: Search
+
+public enum SearchKind: String, Sendable, CaseIterable {
+    case task, event, note, week, rock, quarter, quarterRock, goal
+
+    public var label: String {
+        switch self {
+        case .task: "Task"
+        case .event: "Calendar"
+        case .note: "Notes"
+        case .week: "Week"
+        case .rock: "Rock"
+        case .quarter: "Quarter"
+        case .quarterRock: "Q rock"
+        case .goal: "Goal"
+        }
+    }
+}
+
+/// One search result (client-api §22.7). Journal and notebook entries are never searched.
+public struct SearchHit: Sendable, Equatable, Identifiable {
+    public var kind: SearchKind
+    public var id: String
+    public var title: String
+    /// `yyyy-MM-dd`: the day for tasks/events/notes, the Monday for weeks/rocks, the first day of
+    /// the quarter for quarter items, Jan 1 for goals.
+    public var date: String
+    public var extra: String?
+
+    public init(_ j: JSON) {
+        kind = SearchKind(rawValue: j["kind"].string ?? "") ?? .task
+        id = j["id"].idString ?? ""
+        title = j["title"].string ?? ""
+        date = j["date"].string ?? ""
+        extra = j["extra"].nonEmptyString
+    }
+}

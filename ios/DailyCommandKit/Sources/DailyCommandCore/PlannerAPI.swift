@@ -207,6 +207,13 @@ public final class PlannerAPI: @unchecked Sendable {
         try await call("plannerGoalUpdate", p)
     }
 
+    // MARK: Search
+
+    /// Tasks, calendar, daily notes and the planning records; never journals or notebooks.
+    public func search(_ q: String) async throws -> [SearchHit] {
+        try await call("plannerSearch", ["q": q])["results"].array.map(SearchHit.init)
+    }
+
     // MARK: Journal
 
     public func journal() async throws -> JournalPayload {

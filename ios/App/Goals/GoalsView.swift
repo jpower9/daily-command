@@ -21,6 +21,7 @@ final class GoalsModel {
 
 struct GoalsView: View {
     @Environment(AppModel.self) private var app
+    @Environment(Navigator.self) private var nav
     @State private var m = GoalsModel()
 
     var body: some View {
@@ -62,8 +63,12 @@ struct GoalsView: View {
         .background(DC.bg)
         .navigationTitle("Goals")
         .navigationBarTitleDisplayMode(.inline)
-        .task { if let api = app.api { await m.load(api) } }
+        .toolbar { ToolbarItem(placement: .topBarLeading) { SearchButton() } }
+        .task { if let d = nav.take(.goals) { m.year = Int(d.prefix(4)) ?? m.year }; if let api = app.api { await m.load(api) } }
         .refreshable { if let api = app.api { await m.load(api) } }
+        .onChange(of: nav.jumpId) { _, _ in
+            if let d = nav.take(.goals), let api = app.api { m.year = Int(d.prefix(4)) ?? m.year; m.payload = nil; Task { await m.load(api) } }
+        }
     }
 }
 

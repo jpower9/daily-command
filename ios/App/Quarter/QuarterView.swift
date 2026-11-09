@@ -28,6 +28,7 @@ final class QuarterModel {
 
 struct QuarterView: View {
     @Environment(AppModel.self) private var app
+    @Environment(Navigator.self) private var nav
     @State private var m = QuarterModel()
 
     var body: some View {
@@ -72,8 +73,12 @@ struct QuarterView: View {
         .background(DC.bg)
         .navigationTitle("Quarter")
         .navigationBarTitleDisplayMode(.inline)
-        .task { if let api = app.api { await m.load(api) } }
+        .toolbar { ToolbarItem(placement: .topBarLeading) { SearchButton() } }
+        .task { if let d = nav.take(.quarter) { m.quarter = Planning.quarterOf(d) }; if let api = app.api { await m.load(api) } }
         .refreshable { if let api = app.api { await m.load(api) } }
+        .onChange(of: nav.jumpId) { _, _ in
+            if let d = nav.take(.quarter), let api = app.api { m.quarter = Planning.quarterOf(d); m.payload = nil; Task { await m.load(api) } }
+        }
     }
 
     private func add(_ api: PlannerAPI) {

@@ -85,6 +85,7 @@ final class DayModel {
 
 struct DayView: View {
     @Environment(AppModel.self) private var app
+    @Environment(Navigator.self) private var nav
     @State private var m = DayModel()
 
     var body: some View {
@@ -98,6 +99,11 @@ struct DayView: View {
                     CalendarCard(m: m, api: api)
                     Top3Card(m: m, api: api)
                     TasksCard(m: m, api: api)
+                    Card("Daily notes") {
+                        EditRow(label: "Today — calls, decisions, things to remember (searchable)", value: m.day.notes) { v in
+                            await m.saveDay(["notes": orNull(v.isEmpty ? nil : v)], api)
+                        }
+                    }
                     CheckInCard(m: m, api: api)
                     GratitudeCard(m: m, api: api)
                     CloseOutCard(m: m, api: api)
@@ -109,11 +115,15 @@ struct DayView: View {
         .navigationTitle("Day")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) { SearchButton() }
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink { SettingsView() } label: { Image(systemName: "person.crop.circle") }
             }
         }
-        .task { if let api = app.api { await m.load(api) } }
+        .task { if let d = nav.take(.day) { m.date = d }; if let api = app.api { await m.load(api) } }
+        .onChange(of: nav.jumpId) { _, _ in
+            if let d = nav.take(.day), let api = app.api { m.date = d; m.payload = nil; Task { await m.load(api) } }
+        }
         .refreshable { if let api = app.api { await m.load(api) } }
     }
 
