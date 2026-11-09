@@ -40,6 +40,13 @@ open DailyCommand.xcodeproj
 Tests: `cd ios/DailyCommandKit && swift test`. CI runs the same on every push (`.github/workflows/ios.yml`),
 builds the app for the simulator, and fails if any runtime or staff name shows up in a client surface.
 
+## TestFlight
+
+Actions → **TestFlight** → Run workflow (from `main`). It archives on a GitHub Mac with the team's App Store
+Connect API key and uploads; the build number is the run number. One-time repo settings: secrets `ASC_KEY_P8`,
+`ASC_KEY_ID`, `ASC_ISSUER_ID`; variable `DC_SUPABASE_PUBLISHABLE_KEY`. The same `ios/scripts/release.sh`
+runs from a Mac in Terminal.
+
 ## Journal encryption
 
 Locked notebooks are encrypted on the device: PBKDF2-HMAC-SHA256 (310,000 iterations, 16-byte salt)
