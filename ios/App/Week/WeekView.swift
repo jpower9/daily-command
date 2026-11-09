@@ -31,6 +31,7 @@ final class WeekModel {
 
 struct WeekView: View {
     @Environment(AppModel.self) private var app
+    @Environment(Navigator.self) private var nav
     @State private var m = WeekModel()
     @State private var addingRole = false
     @State private var newRole = ""
@@ -87,8 +88,12 @@ struct WeekView: View {
         .background(DC.bg)
         .navigationTitle("Week")
         .navigationBarTitleDisplayMode(.inline)
-        .task { if let api = app.api { await m.load(api) } }
+        .toolbar { ToolbarItem(placement: .topBarLeading) { SearchButton() } }
+        .task { if let d = nav.take(.week) { m.weekStart = Planning.monday(d) }; if let api = app.api { await m.load(api) } }
         .refreshable { if let api = app.api { await m.load(api) } }
+        .onChange(of: nav.jumpId) { _, _ in
+            if let d = nav.take(.week), let api = app.api { m.weekStart = Planning.monday(d); m.payload = nil; Task { await m.load(api) } }
+        }
     }
 
     private func addRole(_ api: PlannerAPI) {
