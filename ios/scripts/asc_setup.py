@@ -48,10 +48,29 @@ def call(token: str, method: str, path: str, body=None):
         return e.code, json.loads(e.read() or b"{}")
 
 
+def revoke_orphan_dev_certs(token: str):
+    """Revoke Apple Development certificates Xcode created via the API key ("Created via API") whose
+    private key no longer exists on this machine, so Xcode can issue a fresh one. Distribution and
+    manually-made certificates are never touched."""
+    st, res = call(token, "GET", "/certificates?filter[certificateType]=DEVELOPMENT,IOS_DEVELOPMENT&limit=200")
+    if st != 200:
+        sys.exit(f"certificates lookup failed ({st}): {json.dumps(res)[:300]}")
+    n = 0
+    for c in res.get("data", []):
+        a = c["attributes"]
+        print(f"  cert: {a.get('name')!r} {a.get('certificateType')} serial={a.get('serialNumber')} exp={a.get('expirationDate')}")
+        if "created via api" in (a.get("name") or "").lower() or "created via api" in (a.get("displayName") or "").lower():
+            st, r2 = call(token, "DELETE", f"/certificates/{c['id']}")
+            print(f"    revoked -> {st}" if st == 204 else f"    revoke failed ({st}): {json.dumps(r2)[:200]}")
+            n += st == 204
+    print(f"revoked {n} orphaned development certificate(s)")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--app-name", default="Daily Command by ExecClone")
     ap.add_argument("--sku", default="dailycommand")
+    ap.add_argument("--revoke-orphan-dev-certs", action="store_true")
     args = ap.parse_args()
     key_id = os.environ.get("ASC_KEY_ID") or sys.exit("ASC_KEY_ID is required")
     issuer = os.environ.get("ASC_ISSUER_ID") or sys.exit("ASC_ISSUER_ID is required")
@@ -59,6 +78,8 @@ def main():
     if not os.path.exists(key_path):
         sys.exit(f"App Store Connect key not found at {key_path}")
     token = jwt(key_id, issuer, key_path)
+    if args.revoke_orphan_dev_certs:
+        return revoke_orphan_dev_certs(token)
 
     # 1. Bundle ID
     st, res = call(token, "GET", f"/bundleIds?filter[identifier]={BUNDLE}&limit=5")
