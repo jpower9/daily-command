@@ -20,7 +20,8 @@ xcodegen generate > "$OUT/xcodegen.log" 2>&1 || { cat "$OUT/xcodegen.log"; echo 
 AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER")
 xcodebuild -project DailyCommand.xcodeproj -scheme DailyCommand -configuration Release -destination 'generic/platform=iOS' \
   -archivePath "$OUT/DailyCommand.xcarchive" -derivedDataPath "$OUT/dd" CURRENT_PROJECT_VERSION="$BUILD" archive "${AUTH[@]}" > "$OUT/archive.log" 2>&1 \
-  || { grep -E "error:" "$OUT/archive.log" | head -20; echo "archive failed (log: $OUT/archive.log)"; exit 1; }
+  || { set +e; grep -E "error:" "$OUT/archive.log" | head -20; echo "-- archive.log tail:"; tail -40 "$OUT/archive.log"; echo "archive failed (log: $OUT/archive.log)"; exit 1; }
 scripts/brand-check.sh "$OUT/DailyCommand.xcarchive/Products/Applications/Daily Command.app" || { echo "brand check failed"; exit 1; }
-xcodebuild -exportArchive -archivePath "$OUT/DailyCommand.xcarchive" -exportOptionsPlist Config/ExportOptions.plist -exportPath "$OUT/export" "${AUTH[@]}"
+xcodebuild -exportArchive -archivePath "$OUT/DailyCommand.xcarchive" -exportOptionsPlist Config/ExportOptions.plist -exportPath "$OUT/export" "${AUTH[@]}" > "$OUT/export.log" 2>&1 \
+  || { set +e; tail -40 "$OUT/export.log"; echo "export/upload failed (log: $OUT/export.log)"; exit 1; }
 echo "Uploaded build $BUILD. It appears in TestFlight after Apple finishes processing (5–20 min)."
