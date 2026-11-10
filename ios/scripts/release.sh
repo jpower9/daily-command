@@ -12,7 +12,7 @@ KEY_PATH=${ASC_KEY_PATH:-$HOME/.appstoreconnect/private_keys/AuthKey_$KEY_ID.p8}
 OUT=${TMPDIR:-/tmp}/daily-command-release-$BUILD
 cd "$(dirname "$0")/.."
 [ -f Config/Local.xcconfig ] || { echo "Config/Local.xcconfig is missing (copy Local.xcconfig.example)"; exit 1; }
-grep -q 'sb_publishable_' Config/Local.xcconfig || { echo "Local.xcconfig has no publishable key"; exit 1; }
+grep -q "sb_publishable_" Config/Base.xcconfig Config/Local.xcconfig || { echo "no publishable key in Config"; exit 1; }
 [ -f "$KEY_PATH" ] || { echo "App Store Connect key not found at $KEY_PATH"; exit 1; }
 mkdir -p "$OUT"
 xcodegen generate >/dev/null

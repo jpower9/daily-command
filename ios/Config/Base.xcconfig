@@ -3,5 +3,7 @@
 MARKETING_VERSION = 2026.11.1
 CURRENT_PROJECT_VERSION = 1
 DC_SUPABASE_URL = https:/$()/llommlrqryqaqmfkaqry.supabase.co
-DC_SUPABASE_PUBLISHABLE_KEY =
+// The publishable key is designed to ship in client bundles (it grants nothing by itself);
+// Local.xcconfig may still override it.
+DC_SUPABASE_PUBLISHABLE_KEY = sb_publishable_WN19ZQl1yu6oRR9B6hO22g_1YKtz9tW
 #include? "Local.xcconfig"
