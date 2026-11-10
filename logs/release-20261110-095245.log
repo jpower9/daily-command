@@ -1,0 +1,52 @@
+== dc-release Tue Nov 10 09:52:45 CST 2026 build=202611100952 branch=claude/asc-setup host=ExecCloneHQs-Mac-mini.local
+cloned 7de2288
+ApiKey_7CDVODU54RU0.p8
+AuthKey_RWQT9P832G.p8
+AuthKey_YAPTWHXBNV.p8
+Xcode 27.0
+xcodegen Version: 2.46.0 at /opt/homebrew/bin/xcodegen
+/Users/execclonehq/dc-build/src/ios/DailyCommand.xcodeproj: error: Revoke certificate: Your account already has an Apple Development signing certificate for this machine, but its private key is not installed in your keychain. Xcode can create a new one after revoking your existing certificate. (in target 'DailyCommand' from project 'DailyCommand')
+/Users/execclonehq/dc-build/src/ios/DailyCommand.xcodeproj: error: No signing certificate "iOS Development" found: No "iOS Development" signing certificate matching team ID "G53Y6B5LN4" with a private key was found. (in target 'DailyCommand' from project 'DailyCommand')
+-- archive.log tail:
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (3 targets)
+    Target 'DailyCommand' in project 'DailyCommand'
+        ➜ Explicit dependency on target 'DailyCommandCore-product' in project 'DailyCommandKit'
+    Target 'DailyCommandCore-product' in project 'DailyCommandKit'
+        ➜ Explicit dependency on target 'DailyCommandCore' in project 'DailyCommandKit'
+    Target 'DailyCommandCore' in project 'DailyCommandKit' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS27.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/execclonehq/dc-build/src/ios/Resources/Assets.xcassets
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+Build description signature: f99badc4f54b4d79e82eacabb06c9ad7
+Build description path: /var/folders/4t/p74bfhnj01n52lmpx6vl6d180000gn/T/daily-command-release-202611100952/dd/Build/Intermediates.noindex/ArchiveIntermediates/DailyCommand/IntermediateBuildFilesPath/XCBuildData/f99badc4f54b4d79e82eacabb06c9ad7.xcbuilddata
+/Users/execclonehq/dc-build/src/ios/DailyCommand.xcodeproj: error: Revoke certificate: Your account already has an Apple Development signing certificate for this machine, but its private key is not installed in your keychain. Xcode can create a new one after revoking your existing certificate. (in target 'DailyCommand' from project 'DailyCommand')
+/Users/execclonehq/dc-build/src/ios/DailyCommand.xcodeproj: error: No signing certificate "iOS Development" found: No "iOS Development" signing certificate matching team ID "G53Y6B5LN4" with a private key was found. (in target 'DailyCommand' from project 'DailyCommand')
+** ARCHIVE FAILED **
+
+
+The following build commands failed:
+	Archiving project DailyCommand with scheme DailyCommand
+(1 failure)
+archive failed (log: /var/folders/4t/p74bfhnj01n52lmpx6vl6d180000gn/T//daily-command-release-202611100952/archive.log)
+== exit 1 Tue Nov 10 09:52:50 CST 2026
