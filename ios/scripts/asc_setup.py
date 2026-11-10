@@ -66,11 +66,44 @@ def revoke_orphan_dev_certs(token: str):
     print(f"revoked {n} orphaned development certificate(s)")
 
 
+def add_internal_tester(token: str, email: str):
+    """Make sure an internal TestFlight group with access to every build exists for the app and that
+    `email` (a team member) is in it."""
+    st, res = call(token, "GET", f"/apps?filter[bundleId]={BUNDLE}&limit=1")
+    apps = res.get("data", []) if st == 200 else []
+    if not apps:
+        sys.exit(f"no app record for {BUNDLE} ({st})")
+    app_id = apps[0]["id"]
+    st, res = call(token, "GET", f"/apps/{app_id}/betaGroups?limit=50")
+    groups = [g for g in (res.get("data", []) if st == 200 else []) if g["attributes"].get("isInternalGroup")]
+    if groups:
+        group = groups[0]
+    else:
+        st, res = call(token, "POST", "/betaGroups", {"data": {"type": "betaGroups", "attributes": {
+            "name": "Internal", "isInternalGroup": True, "hasAccessToAllBuilds": True},
+            "relationships": {"app": {"data": {"type": "apps", "id": app_id}}}}})
+        if st not in (200, 201):
+            sys.exit(f"could not create internal group ({st}): {json.dumps(res)[:300]}")
+        group = res["data"]
+    print(f"internal group {group['attributes']['name']!r} ({group['id']})")
+    st, res = call(token, "GET", f"/betaGroups/{group['id']}/betaTesters?limit=200")
+    if st == 200 and any((t["attributes"].get("email") or "").lower() == email.lower() for t in res.get("data", [])):
+        print(f"{email} is already a tester")
+        return
+    st, res = call(token, "POST", "/betaTesters", {"data": {"type": "betaTesters", "attributes": {"email": email},
+        "relationships": {"betaGroups": {"data": [{"type": "betaGroups", "id": group["id"]}]}}}})
+    if st in (200, 201):
+        print(f"added {email} to {group['attributes']['name']!r}")
+    else:
+        sys.exit(f"could not add tester ({st}): {json.dumps(res)[:400]}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--app-name", default="Daily Command by ExecClone")
     ap.add_argument("--sku", default="dailycommand")
     ap.add_argument("--revoke-orphan-dev-certs", action="store_true")
+    ap.add_argument("--add-internal-tester", metavar="EMAIL")
     args = ap.parse_args()
     key_id = os.environ.get("ASC_KEY_ID") or sys.exit("ASC_KEY_ID is required")
     issuer = os.environ.get("ASC_ISSUER_ID") or sys.exit("ASC_ISSUER_ID is required")
@@ -80,6 +113,8 @@ def main():
     token = jwt(key_id, issuer, key_path)
     if args.revoke_orphan_dev_certs:
         return revoke_orphan_dev_certs(token)
+    if args.add_internal_tester:
+        return add_internal_tester(token, args.add_internal_tester)
 
     # 1. Bundle ID
     st, res = call(token, "GET", f"/bundleIds?filter[identifier]={BUNDLE}&limit=5")

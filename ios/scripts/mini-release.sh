@@ -27,4 +27,6 @@ export ASC_KEY_ID=RWQT9P832G ASC_ISSUER_ID=44012159-23e1-4c9e-86f6-23c38d448cf8
 # The build keychain is empty, so any API-made development certificate on file is orphaned; revoke
 # it so Xcode (-allowProvisioningUpdates) issues a fresh one into this keychain.
 python3 scripts/asc_setup.py --revoke-orphan-dev-certs
-exec zsh scripts/release.sh "$BUILD"
+zsh scripts/release.sh "$BUILD"
+[ -n "${DC_TESTER:-}" ] && python3 scripts/asc_setup.py --add-internal-tester "$DC_TESTER"
+exit 0
