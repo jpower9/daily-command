@@ -15,7 +15,8 @@ cd "$(dirname "$0")/.."
 grep -q "sb_publishable_" Config/Base.xcconfig Config/Local.xcconfig || { echo "no publishable key in Config"; exit 1; }
 [ -f "$KEY_PATH" ] || { echo "App Store Connect key not found at $KEY_PATH"; exit 1; }
 mkdir -p "$OUT"
-xcodegen generate >/dev/null
+echo "xcodegen $(xcodegen --version 2>&1 | head -1) at $(which xcodegen)"
+xcodegen generate > "$OUT/xcodegen.log" 2>&1 || { cat "$OUT/xcodegen.log"; echo "xcodegen failed"; exit 1; }
 AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY_PATH" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER")
 xcodebuild -project DailyCommand.xcodeproj -scheme DailyCommand -configuration Release -destination 'generic/platform=iOS' \
   -archivePath "$OUT/DailyCommand.xcarchive" -derivedDataPath "$OUT/dd" CURRENT_PROJECT_VERSION="$BUILD" archive "${AUTH[@]}" > "$OUT/archive.log" 2>&1 \
