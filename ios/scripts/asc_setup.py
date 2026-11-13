@@ -130,6 +130,19 @@ def build_status(token: str):
         print(f"group {ga.get('name')!r} internal={ga.get('isInternalGroup')} allBuilds={ga.get('hasAccessToAllBuilds')} testers={emails}")
 
 
+def reinvite(token: str, email: str):
+    st, res = call(token, "GET", f"/apps?filter[bundleId]={BUNDLE}&limit=1")
+    app_id = (res.get("data") or [{}])[0].get("id") if st == 200 else None
+    st, res = call(token, "GET", f"/betaTesters?filter[email]={email}&limit=5")
+    testers = res.get("data", []) if st == 200 else []
+    if not app_id or not testers:
+        sys.exit(f"app or tester not found (app={app_id}, testers={len(testers)})")
+    st, res = call(token, "POST", "/betaTesterInvitations", {"data": {"type": "betaTesterInvitations", "relationships": {
+        "betaTester": {"data": {"type": "betaTesters", "id": testers[0]["id"]}},
+        "app": {"data": {"type": "apps", "id": app_id}}}}})
+    print(f"invitation resent to {email}" if st in (200, 201) else f"resend failed ({st}): {json.dumps(res)[:300]}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--app-name", default="Daily Command by ExecClone")
@@ -137,6 +150,7 @@ def main():
     ap.add_argument("--revoke-orphan-dev-certs", action="store_true")
     ap.add_argument("--add-internal-tester", metavar="EMAIL")
     ap.add_argument("--status", action="store_true")
+    ap.add_argument("--reinvite", metavar="EMAIL")
     args = ap.parse_args()
     key_id = os.environ.get("ASC_KEY_ID") or sys.exit("ASC_KEY_ID is required")
     issuer = os.environ.get("ASC_ISSUER_ID") or sys.exit("ASC_ISSUER_ID is required")
@@ -150,6 +164,8 @@ def main():
         return add_internal_tester(token, args.add_internal_tester)
     if args.status:
         return build_status(token)
+    if args.reinvite:
+        return reinvite(token, args.reinvite)
 
     # 1. Bundle ID
     st, res = call(token, "GET", f"/bundleIds?filter[identifier]={BUNDLE}&limit=5")
