@@ -41,6 +41,28 @@ public struct Day: Sendable, Equatable {
 
     public static func empty(_ date: String) -> Day { Day(.object(["for_date": .string(date)])) }
 
+    /// The day as it would come back after `plannerSaveDay` with `patch` (server column names),
+    /// so a screen can show a check-in or note the moment it is tapped.
+    public func applying(_ patch: [String: Any]) -> Day {
+        var j = raw
+        for (k, v) in patch { j[k] = JSON(any: JSONNull.resolve(v)) }
+        return Day(.object(j))
+    }
+
+    /// Server-shaped copy of the fields this type reads (for `applying`).
+    var raw: [String: JSON] {
+        func n(_ i: Int?) -> JSON { i.map { .number(Double($0)) } ?? .null }
+        func s(_ v: String?) -> JSON { v.map(JSON.string) ?? .null }
+        func d(_ v: Date?) -> JSON { v.map { .string(ServerDate.string($0)) } ?? .null }
+        return ["for_date": .string(forDate), "energy": n(energy), "focus": n(focus), "mood": n(mood), "stress": n(stress),
+                "md_energy": n(mdEnergy), "md_focus": n(mdFocus), "md_mood": n(mdMood), "md_stress": n(mdStress),
+                "pm_energy": n(pmEnergy), "pm_focus": n(pmFocus), "pm_mood": n(pmMood), "pm_stress": n(pmStress),
+                "am_checked_at": d(amCheckedAt), "md_checked_at": d(mdCheckedAt), "pm_checked_at": d(pmCheckedAt),
+                "sleep_minutes": n(sleepMinutes), "workout_planned": .bool(workoutPlanned), "workout_done": .bool(workoutDone),
+                "gratitude": .array(gratitude.map(JSON.string)), "intention": s(intention), "win": s(win), "lesson": s(lesson),
+                "tomorrow_one": s(tomorrowOne), "notes": s(notes), "day_rating": n(dayRating), "closed_at": d(closedAt)]
+    }
+
     /// Reads a check-in metric for a phase (`energy`, `md_energy`, `pm_energy`…).
     public func metric(_ m: Metric, _ phase: Phase) -> Int? {
         switch (phase, m) {

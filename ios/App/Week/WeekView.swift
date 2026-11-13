@@ -9,6 +9,7 @@ final class WeekModel {
     var error: String?
 
     func load(_ api: PlannerAPI) async {
+        if payload == nil, let c = api.cachedWeek(weekStart) { payload = c }
         loading = payload == nil
         defer { loading = false }
         do { payload = try await api.week(weekStart); error = nil } catch { self.error = error.localizedDescription }

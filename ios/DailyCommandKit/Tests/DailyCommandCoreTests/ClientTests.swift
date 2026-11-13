@@ -192,3 +192,50 @@ struct TwoStepTests {
         }
     }
 }
+
+struct CacheTests {
+    private func api(_ t: FakeTransport, _ cache: MemoryResponseCache) -> PlannerAPI {
+        let auth = AuthClient(environment: env, store: MemorySessionStore(), transport: t)
+        return PlannerAPI(session: Session(accessToken: "A", refreshToken: "R", userId: "u1", email: "e@x.com"), auth: auth, transport: t, cache: cache)
+    }
+
+    @Test func readActionsAreCachedAndReplayable() async throws {
+        let cache = MemoryResponseCache()
+        let t = FakeTransport([(#"{"date":"2026-11-12","today":"2026-11-12","tasks":[{"id":"t1","title":"Call Will","status":"open"}]}"#, 200)])
+        let a = api(t, cache)
+        #expect(a.cachedDay("2026-11-12") == nil)
+        let live = try await a.day("2026-11-12")
+        let replay = a.cachedDay("2026-11-12")
+        #expect(replay == live)
+        #expect(replay?.tasks.first?.title == "Call Will")
+        #expect(a.cachedDay("2026-11-13") == nil)   // keyed by parameters
+    }
+
+    @Test func writesAreNotCached() async throws {
+        let cache = MemoryResponseCache()
+        let t = FakeTransport([(#"{"ok":true,"id":"t9"}"#, 200)])
+        _ = try await api(t, cache).saveTask(id: nil, patch: ["title": "x"])
+        #expect(cache.read(ResponseCache.key("plannerTaskSave", ["patch": ["title": "x"]])) == nil)
+    }
+
+    @Test func diskCacheRoundTripsAndClears() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let c = ResponseCache(userId: "u1", root: root)
+        c.write("k", .object(["a": .number(1)]))
+        // write is asynchronous; give it a moment
+        Thread.sleep(forTimeInterval: 0.2)
+        #expect(c.read("k")?["a"].int == 1)
+        c.clear()
+        #expect(c.read("k") == nil)
+    }
+
+    @Test func dayApplyingPatchMatchesServerShape() {
+        let d = Day(.object(["for_date": .string("2026-11-12"), "energy": .number(2), "notes": .string("old")]))
+        let n = d.applying(["pm_energy": 4, "notes": orNull(nil as String?), "gratitude": ["sun"]])
+        #expect(n.energy == 2)
+        #expect(n.pmEnergy == 4)
+        #expect(n.notes == nil)
+        #expect(n.gratitude == ["sun"])
+        #expect(n.forDate == "2026-11-12")
+    }
+}

@@ -16,6 +16,7 @@ final class JournalModel {
     var lastActivity = Date()
 
     func load(_ api: PlannerAPI) async {
+        if payload == nil, let c = api.cachedJournal() { payload = c; if selectedNotebookId == nil { selectedNotebookId = c.notebooks.first?.id } }
         loading = payload == nil
         defer { loading = false }
         do {

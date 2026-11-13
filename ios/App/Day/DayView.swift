@@ -18,6 +18,7 @@ final class DayModel {
     var tasks: [PlannerTask] { Planning.sort((payload?.tasks ?? []).filter { !$0.isTop3 }, by: .priority) }
 
     func load(_ api: PlannerAPI) async {
+        if payload == nil, let c = api.cachedDay(date) { payload = c }   // instant: last known
         loading = payload == nil
         defer { loading = false }
         do {
@@ -32,11 +33,20 @@ final class DayModel {
         await load(api)
     }
 
+    /// Apply a change to the local copy right away; the service's answer replaces it on reload.
+    private func locally(_ change: (inout DayPayload) -> Void) {
+        guard var p = payload else { return }
+        change(&p)
+        payload = p
+    }
+
     func saveDay(_ patch: sending [String: Any], _ api: PlannerAPI) async {
+        let applied = day.applying(patch)
+        locally { $0.day = applied }
         do {
             try await api.saveDay(date, patch: patch)
             await load(api)
-        } catch { self.error = error.localizedDescription }
+        } catch { self.error = error.localizedDescription; await load(api) }
     }
 
     func addTask(_ api: PlannerAPI) async {
@@ -45,33 +55,38 @@ final class DayModel {
         newTask = ""
         var patch: [String: Any] = ["title": p.title, "priority": p.priority, "for_date": date]
         if let tag = p.tag { patch["tag"] = tag }
+        locally { $0.tasks.append(PlannerTask(.object(["id": .string("pending-\(UUID().uuidString)"), "title": .string(p.title), "status": .string("open"), "priority": .number(Double(p.priority)), "tag": p.tag.map(JSON.string) ?? .null, "for_date": .string(date), "origin_date": .string(date)]))) }
         do {
             try await api.saveTask(id: nil, patch: patch)
             await load(api)
-        } catch { self.error = error.localizedDescription }
+        } catch { self.error = error.localizedDescription; await load(api) }
     }
 
     func toggle(_ t: PlannerTask, _ api: PlannerAPI) async {
+        let done = t.status != .done
+        locally { p in if let i = p.tasks.firstIndex(where: { $0.id == t.id }) { p.tasks[i].status = done ? .done : .open; p.tasks[i].completedAt = done ? Date() : nil } }
         do {
-            try await api.saveTask(id: t.id, patch: ["status": t.status == .done ? "open" : "done"])
+            try await api.saveTask(id: t.id, patch: ["status": done ? "done" : "open"])
             await load(api)
-        } catch { self.error = error.localizedDescription }
+        } catch { self.error = error.localizedDescription; await load(api) }
     }
 
     func setTop3(_ t: PlannerTask, _ on: Bool, _ api: PlannerAPI) async {
         if on, top3.count >= 3 { error = "Top 3 is full. Take one off first."; return }
         let pos = on ? ((1...3).first { p in !top3.contains { $0.top3Position == p } } ?? 3) : nil
+        locally { p in if let i = p.tasks.firstIndex(where: { $0.id == t.id }) { p.tasks[i].isTop3 = on; p.tasks[i].top3Position = pos } }
         do {
             try await api.saveTask(id: t.id, patch: ["is_top3": on, "top3_position": orNull(pos)])
             await load(api)
-        } catch { self.error = error.localizedDescription }
+        } catch { self.error = error.localizedDescription; await load(api) }
     }
 
     func drop(_ t: PlannerTask, _ api: PlannerAPI) async {
+        locally { p in p.tasks.removeAll { $0.id == t.id } }
         do {
             try await api.saveTask(id: t.id, patch: ["status": "dropped"])
             await load(api)
-        } catch { self.error = error.localizedDescription }
+        } catch { self.error = error.localizedDescription; await load(api) }
     }
 
     func carry(_ api: PlannerAPI) async {

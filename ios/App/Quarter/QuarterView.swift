@@ -10,6 +10,7 @@ final class QuarterModel {
     var newRock = ""
 
     func load(_ api: PlannerAPI) async {
+        if payload == nil, let c = api.cachedQuarter(quarter) { payload = c }
         loading = payload == nil
         defer { loading = false }
         do { payload = try await api.quarter(quarter); error = nil } catch { self.error = error.localizedDescription }

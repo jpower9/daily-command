@@ -9,6 +9,7 @@ final class GoalsModel {
     var error: String?
 
     func load(_ api: PlannerAPI) async {
+        if payload == nil, let c = api.cachedGoals(year: year) { payload = c }
         loading = payload == nil
         defer { loading = false }
         do { payload = try await api.goals(year: year); error = nil } catch { self.error = error.localizedDescription }

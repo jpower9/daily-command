@@ -43,7 +43,7 @@ final class AppModel {
     }
 
     private func makeAPI(_ session: Session, _ auth: AuthClient) -> PlannerAPI {
-        let api = PlannerAPI(session: session, auth: auth)
+        let api = PlannerAPI(session: session, auth: auth, cache: ResponseCache(userId: session.userId))
         api.onTwoStepRequired = { [weak self] in
             Task { @MainActor [weak self] in self?.needsTwoStep() }
         }
@@ -56,6 +56,7 @@ final class AppModel {
     }
 
     func signOut() async {
+        api?.cache?.clear()
         await auth?.signOut()
         api = nil
         state = .signedOut

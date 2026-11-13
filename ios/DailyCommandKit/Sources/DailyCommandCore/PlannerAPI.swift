@@ -14,10 +14,16 @@ public final class PlannerAPI: @unchecked Sendable {
     /// switch screens without every caller inspecting the error.
     public var onTwoStepRequired: (@Sendable () -> Void)?
 
-    public init(session: Session, auth: AuthClient, transport: HTTPTransport = URLSessionTransport()) {
+    /// Last-known responses of the read actions (see `ResponseCache`); nil disables caching.
+    public let cache: ResponseCaching?
+    /// Read actions whose response is worth showing before the network answers.
+    static let cachedActions: Set<String> = ["plannerDay", "plannerWeek", "plannerQuarter", "plannerGoals", "plannerJournal", "plannerReminders"]
+
+    public init(session: Session, auth: AuthClient, transport: HTTPTransport = URLSessionTransport(), cache: ResponseCaching? = nil) {
         _session = session
         self.auth = auth
         self.transport = transport
+        self.cache = cache
     }
 
     public var session: Session { lock.withLock { _session } }
@@ -28,8 +34,19 @@ public final class PlannerAPI: @unchecked Sendable {
     @discardableResult
     public func call(_ action: String, _ params: sending [String: Any] = [:]) async throws -> JSON {
         var payload = JSONNull.resolve(params) as? [String: Any] ?? [:]
+        let cacheKey = Self.cachedActions.contains(action) ? ResponseCache.key(action, payload) : nil
         payload["action"] = action
-        return try await perform(payload: payload, retried: false)
+        let body = try await perform(payload: payload, retried: false)
+        if let cacheKey { cache?.write(cacheKey, body) }
+        return body
+    }
+
+    /// The last response the service gave for this read action, if any. Screens show it at once,
+    /// then replace it with the live answer from `call`.
+    public func cached(_ action: String, _ params: sending [String: Any] = [:]) -> JSON? {
+        guard Self.cachedActions.contains(action), let cache else { return nil }
+        let payload = JSONNull.resolve(params) as? [String: Any] ?? [:]
+        return cache.read(ResponseCache.key(action, payload))
     }
 
     private func perform(payload: [String: Any], retried: Bool) async throws -> JSON {
@@ -65,6 +82,12 @@ public final class PlannerAPI: @unchecked Sendable {
         var p: [String: Any] = [:]
         if let date { p["date"] = date }
         return DayPayload(try await call("plannerDay", p))
+    }
+
+    public func cachedDay(_ date: String? = nil) -> DayPayload? {
+        var p: [String: Any] = [:]
+        if let date { p["date"] = date }
+        return cached("plannerDay", p).map(DayPayload.init)
     }
 
     public func saveDay(_ date: String, patch: sending [String: Any]) async throws {
@@ -145,6 +168,12 @@ public final class PlannerAPI: @unchecked Sendable {
         return WeekPayload(try await call("plannerWeek", p))
     }
 
+    public func cachedWeek(_ weekStart: String? = nil) -> WeekPayload? {
+        var p: [String: Any] = [:]
+        if let weekStart { p["weekStart"] = weekStart }
+        return cached("plannerWeek", p).map(WeekPayload.init)
+    }
+
     public func saveWeek(_ weekStart: String, patch: sending [String: Any]) async throws {
         try await call("plannerWeekSave", ["weekStart": weekStart, "patch": patch])
     }
@@ -183,6 +212,12 @@ public final class PlannerAPI: @unchecked Sendable {
         return QuarterPayload(try await call("plannerQuarter", p))
     }
 
+    public func cachedQuarter(_ quarter: String? = nil) -> QuarterPayload? {
+        var p: [String: Any] = [:]
+        if let quarter { p["quarter"] = quarter }
+        return cached("plannerQuarter", p).map(QuarterPayload.init)
+    }
+
     public func saveQuarter(_ quarter: String, patch: sending [String: Any]) async throws {
         try await call("plannerQuarterSave", ["quarter": quarter, "patch": patch])
     }
@@ -200,6 +235,12 @@ public final class PlannerAPI: @unchecked Sendable {
         var p: [String: Any] = [:]
         if let year { p["year"] = year }
         return GoalsPayload(try await call("plannerGoals", p))
+    }
+
+    public func cachedGoals(year: Int? = nil) -> GoalsPayload? {
+        var p: [String: Any] = [:]
+        if let year { p["year"] = year }
+        return cached("plannerGoals", p).map(GoalsPayload.init)
     }
 
     @discardableResult
@@ -229,6 +270,8 @@ public final class PlannerAPI: @unchecked Sendable {
     public func journal() async throws -> JournalPayload {
         JournalPayload(try await call("plannerJournal"))
     }
+
+    public func cachedJournal() -> JournalPayload? { cached("plannerJournal").map(JournalPayload.init) }
 
     @discardableResult
     public func saveNotebook(id: String?, patch: sending [String: Any]) async throws -> String {

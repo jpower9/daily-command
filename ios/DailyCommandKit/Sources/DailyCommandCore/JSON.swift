@@ -30,6 +30,22 @@ public enum JSON: Sendable, Equatable {
         }
     }
 
+    /// Foundation form, for serialization.
+    public var anyValue: Any {
+        switch self {
+        case .null: NSNull()
+        case let .bool(b): b
+        case let .number(n): n
+        case let .string(s): s
+        case let .array(a): a.map(\.anyValue)
+        case let .object(o): o.mapValues(\.anyValue)
+        }
+    }
+
+    public func data() throws -> Data {
+        try JSONSerialization.data(withJSONObject: anyValue, options: [.fragmentsAllowed, .sortedKeys])
+    }
+
     public subscript(key: String) -> JSON {
         if case let .object(o) = self { return o[key] ?? .null }
         return .null
@@ -108,6 +124,11 @@ public enum ServerDate {
         let fixed = string.replacingOccurrences(of: " ", with: "T")
         if let d = try? Date(fixed, strategy: Date.ISO8601FormatStyle(includingFractionalSeconds: true)) { return d }
         return try? Date(fixed, strategy: Date.ISO8601FormatStyle())
+    }
+
+    /// ISO 8601 with fractional seconds, as the service sends it.
+    public static func string(_ date: Date) -> String {
+        date.formatted(Date.ISO8601FormatStyle(includingFractionalSeconds: true))
     }
 
     /// `yyyy-MM-dd` in the device's calendar.
