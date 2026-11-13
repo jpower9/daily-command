@@ -92,11 +92,11 @@ struct SettingsView: View {
             day = try await d
             reminders = try await r
             error = nil
-        } catch { model.handle(error); self.error = error.localizedDescription }
+        } catch { self.error = error.localizedDescription }
     }
 
     private func run(_ work: () async throws -> Void) async {
-        do { try await work(); await load() } catch { model.handle(error); self.error = error.localizedDescription }
+        do { try await work(); await load() } catch { self.error = error.localizedDescription }
     }
 
     private func connectCalendar() async {
@@ -110,7 +110,7 @@ struct SettingsView: View {
             s.presentationContextProvider = Presenter.shared
             session = s
             s.start()
-        } catch { model.handle(error); self.error = error.localizedDescription }
+        } catch { self.error = error.localizedDescription }
     }
 }
 
@@ -202,6 +202,6 @@ struct RemindersConnectSheet: View {
             }
             appPassword = ""
             done(); dismiss()
-        } catch { model.handle(error); self.error = error.localizedDescription }
+        } catch { self.error = error.localizedDescription }
     }
 }

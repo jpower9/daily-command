@@ -30,7 +30,7 @@ final class AppModel {
         self.auth = auth
         if let session = store.load() {
             state = .signedIn(session)
-            api = PlannerAPI(session: session, auth: auth)
+            api = makeAPI(session, auth)
         } else {
             state = .signedOut
         }
@@ -38,8 +38,21 @@ final class AppModel {
 
     func signedIn(_ session: Session) {
         guard let auth else { return }
-        api = PlannerAPI(session: session, auth: auth)
+        api = makeAPI(session, auth)
         state = .signedIn(session)
+    }
+
+    private func makeAPI(_ session: Session, _ auth: AuthClient) -> PlannerAPI {
+        let api = PlannerAPI(session: session, auth: auth)
+        api.onTwoStepRequired = { [weak self] in
+            Task { @MainActor [weak self] in self?.needsTwoStep() }
+        }
+        return api
+    }
+
+    /// The service answered `mfa_required`: keep the code-only session and ask for the authenticator code.
+    func needsTwoStep() {
+        if case let .signedIn(session) = state { state = .twoStep(session) }
     }
 
     func signOut() async {
@@ -54,8 +67,8 @@ final class AppModel {
             auth?.store.clear()
             api = nil
             state = .signedOut
-        } else if case APIError.twoStepRequired = error, case let .signedIn(session) = state {
-            state = .twoStep(session)
+        } else if case APIError.twoStepRequired = error {
+            needsTwoStep()
         }
     }
 }

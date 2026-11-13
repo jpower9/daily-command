@@ -10,6 +10,10 @@ public final class PlannerAPI: @unchecked Sendable {
     private let lock = NSLock()
     private var _session: Session
 
+    /// Called (off the main actor) when the service demands the authenticator step, so the app can
+    /// switch screens without every caller inspecting the error.
+    public var onTwoStepRequired: (@Sendable () -> Void)?
+
     public init(session: Session, auth: AuthClient, transport: HTTPTransport = URLSessionTransport()) {
         _session = session
         self.auth = auth
@@ -40,7 +44,10 @@ public final class PlannerAPI: @unchecked Sendable {
         let body = (try? JSON(data: data)) ?? .null
         // Two-step (client-api §13): a verified authenticator factor needs an aal2 session.
         // Refreshing does not change the session's level, so hand this straight to the app.
-        if status == 401, body["error"].string == "mfa_required" { throw APIError.twoStepRequired }
+        if status == 401, body["error"].string == "mfa_required" {
+            onTwoStepRequired?()
+            throw APIError.twoStepRequired
+        }
         if status == 401, !retried {
             let refreshed = try await TokenRefresher.shared.refresh(current: current, auth: auth)
             lock.withLock { _session = refreshed }
