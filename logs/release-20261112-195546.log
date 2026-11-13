@@ -1,0 +1,10 @@
+== dc-release Thu Nov 12 19:55:46 CST 2026 build=202611121955 branch=claude/asc-setup host=ExecCloneHQs-Mac-mini.local
+cloned d86cb52
+ApiKey_7CDVODU54RU0.p8
+AuthKey_RWQT9P832G.p8
+AuthKey_YAPTWHXBNV.p8
+Xcode 27.0
+build 202611100954 -> group 'Public': 204
+beta review submission: 201 WAITING_FOR_REVIEW
+PUBLIC LINK: https://testflight.apple.com/join/XxkfeS5A
+== exit 0 Thu Nov 12 19:55:53 CST 2026
