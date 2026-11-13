@@ -57,6 +57,7 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleIconName: AppIcon
         CFBundleDevelopmentRegion: en
+        ITSAppUsesNonExemptEncryption: false
         DCSupabaseURL: $(DC_SUPABASE_URL)
         DCSupabasePublishableKey: $(DC_SUPABASE_PUBLISHABLE_KEY)
         DCKeychainGroup: $(AppIdentifierPrefix)com.execclone.dailycommand
