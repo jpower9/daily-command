@@ -98,12 +98,45 @@ def add_internal_tester(token: str, email: str):
         sys.exit(f"could not add tester ({st}): {json.dumps(res)[:400]}")
 
 
+def build_status(token: str):
+    """Print every build's processing/compliance state and answer the export-compliance question
+    (no non-exempt encryption) so internal testers can install."""
+    st, res = call(token, "GET", f"/apps?filter[bundleId]={BUNDLE}&limit=1")
+    apps = res.get("data", []) if st == 200 else []
+    if not apps:
+        sys.exit(f"no app record for {BUNDLE} ({st})")
+    app_id = apps[0]["id"]
+    st, res = call(token, "GET", f"/builds?filter[app]={app_id}&sort=-uploadedDate&limit=10&include=buildBetaDetail")
+    if st != 200:
+        sys.exit(f"builds lookup failed ({st}): {json.dumps(res)[:300]}")
+    details = {d["id"]: d["attributes"] for d in res.get("included", []) if d["type"] == "buildBetaDetails"}
+    if not res.get("data"):
+        print("no builds on the app record yet")
+    for b in res.get("data", []):
+        a = b["attributes"]
+        det = details.get(b["id"], {})
+        print(f"build {a.get('version')} uploaded={a.get('uploadedDate')} processing={a.get('processingState')} "
+              f"expired={a.get('expired')} nonExemptEncryption={a.get('usesNonExemptEncryption')} "
+              f"internalState={det.get('internalBuildState')} externalState={det.get('externalBuildState')}")
+        if a.get("processingState") == "VALID" and a.get("usesNonExemptEncryption") is None:
+            st, r2 = call(token, "PATCH", f"/builds/{b['id']}", {"data": {"type": "builds", "id": b["id"],
+                          "attributes": {"usesNonExemptEncryption": False}}})
+            print(f"  export compliance set (no non-exempt encryption) -> {st}" if st == 200 else f"  compliance patch failed ({st}): {json.dumps(r2)[:200]}")
+    st, res = call(token, "GET", f"/apps/{app_id}/betaGroups?limit=50")
+    for g in (res.get("data", []) if st == 200 else []):
+        ga = g["attributes"]
+        st2, t = call(token, "GET", f"/betaGroups/{g['id']}/betaTesters?limit=200")
+        emails = [x["attributes"].get("email") for x in (t.get("data", []) if st2 == 200 else [])]
+        print(f"group {ga.get('name')!r} internal={ga.get('isInternalGroup')} allBuilds={ga.get('hasAccessToAllBuilds')} testers={emails}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--app-name", default="Daily Command by ExecClone")
     ap.add_argument("--sku", default="dailycommand")
     ap.add_argument("--revoke-orphan-dev-certs", action="store_true")
     ap.add_argument("--add-internal-tester", metavar="EMAIL")
+    ap.add_argument("--status", action="store_true")
     args = ap.parse_args()
     key_id = os.environ.get("ASC_KEY_ID") or sys.exit("ASC_KEY_ID is required")
     issuer = os.environ.get("ASC_ISSUER_ID") or sys.exit("ASC_ISSUER_ID is required")
@@ -115,6 +148,8 @@ def main():
         return revoke_orphan_dev_certs(token)
     if args.add_internal_tester:
         return add_internal_tester(token, args.add_internal_tester)
+    if args.status:
+        return build_status(token)
 
     # 1. Bundle ID
     st, res = call(token, "GET", f"/bundleIds?filter[identifier]={BUNDLE}&limit=5")
