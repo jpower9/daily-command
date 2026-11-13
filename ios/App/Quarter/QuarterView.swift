@@ -12,7 +12,7 @@ final class QuarterModel {
     func load(_ api: PlannerAPI) async {
         loading = payload == nil
         defer { loading = false }
-        do { payload = try await api.quarter(quarter); error = nil } catch { self.error = error.localizedDescription }
+        do { payload = try await api.quarter(quarter); error = nil } catch { model.handle(error); self.error = error.localizedDescription }
     }
 
     func shift(_ n: Int, _ api: PlannerAPI) async {
@@ -22,7 +22,7 @@ final class QuarterModel {
     }
 
     func run(_ api: PlannerAPI, _ work: () async throws -> Void) async {
-        do { try await work(); await load(api) } catch { self.error = error.localizedDescription }
+        do { try await work(); await load(api) } catch { model.handle(error); self.error = error.localizedDescription }
     }
 }
 

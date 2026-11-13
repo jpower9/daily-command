@@ -158,3 +158,37 @@ struct EnvironmentTests {
         #expect(env.authURL("token?grant_type=refresh_token").absoluteString == "https://example.supabase.co/auth/v1/token?grant_type=refresh_token")
     }
 }
+
+struct TwoStepTests {
+    @Test func mfaRequiredSurfacesAsTwoStep() async throws {
+        let t = FakeTransport([(#"{"error":"mfa_required"}"#, 401)])
+        let auth = AuthClient(environment: env, store: MemorySessionStore(), transport: t)
+        let api = PlannerAPI(session: Session(accessToken: "A", refreshToken: "R", userId: "u1", email: "e@x.com"), auth: auth, transport: t)
+        await #expect(throws: APIError.twoStepRequired) { _ = try await api.day() }
+        #expect(t.calls.count == 1)  // no refresh attempt: refreshing cannot raise the session level
+    }
+
+    @Test func completeTwoStepStoresUpgradedSession() async throws {
+        let t = FakeTransport([
+            (#"{"id":"u1","factors":[{"id":"f1","factor_type":"totp","status":"verified"}]}"#, 200),
+            (#"{"id":"c1"}"#, 200),
+            (#"{"access_token":"A2","refresh_token":"R2"}"#, 200),
+        ])
+        let store = MemorySessionStore()
+        let auth = AuthClient(environment: env, store: store, transport: t)
+        let s = try await auth.completeTwoStep(session: Session(accessToken: "A", refreshToken: "R", userId: "u1", email: "e@x.com"), code: "123 456")
+        #expect(s.accessToken == "A2")
+        #expect(store.load()?.refreshToken == "R2")
+        #expect(t.calls.last?.url.path.hasSuffix("/factors/f1/verify") == true)
+        #expect(t.calls.last?.body["code"] as? String == "123456")
+        #expect(t.calls.last?.headers["Authorization"] == "Bearer A")
+    }
+
+    @Test func noFactorIsAClearError() async {
+        let t = FakeTransport([(#"{"id":"u1","factors":[]}"#, 200)])
+        let auth = AuthClient(environment: env, store: MemorySessionStore(), transport: t)
+        await #expect(throws: APIError.server(status: 400, message: "No authenticator app is set up on this account.")) {
+            _ = try await auth.completeTwoStep(session: Session(accessToken: "A", refreshToken: "R", userId: "u1", email: "e@x.com"), code: "000000")
+        }
+    }
+}

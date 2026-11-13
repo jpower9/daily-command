@@ -10,6 +10,8 @@ final class AppModel {
         case notConfigured
         case signedOut
         case signedIn(Session)
+        /// Signed in with the email code, but the account has an authenticator app enrolled.
+        case twoStep(Session)
     }
 
     private(set) var state: State
@@ -46,12 +48,14 @@ final class AppModel {
         state = .signedOut
     }
 
-    /// Called when an API call reports the session is gone for good.
+    /// Called when an API call reports the session is gone for good, or needs its second step.
     func handle(_ error: Error) {
         if case APIError.notSignedIn = error {
             auth?.store.clear()
             api = nil
             state = .signedOut
+        } else if case APIError.twoStepRequired = error, case let .signedIn(session) = state {
+            state = .twoStep(session)
         }
     }
 }

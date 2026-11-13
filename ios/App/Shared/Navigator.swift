@@ -103,7 +103,7 @@ struct SearchSheet: View {
             let r = try await api.search(t)
             guard n == seq else { return }
             hits = r; searched = true; error = nil
-        } catch {
+        } catch { app.handle(error)
             guard n == seq else { return }
             self.error = error.localizedDescription; hits = []; searched = true
         }

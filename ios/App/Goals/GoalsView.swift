@@ -11,11 +11,11 @@ final class GoalsModel {
     func load(_ api: PlannerAPI) async {
         loading = payload == nil
         defer { loading = false }
-        do { payload = try await api.goals(year: year); error = nil } catch { self.error = error.localizedDescription }
+        do { payload = try await api.goals(year: year); error = nil } catch { model.handle(error); self.error = error.localizedDescription }
     }
 
     func run(_ api: PlannerAPI, _ work: () async throws -> Void) async {
-        do { try await work(); await load(api) } catch { self.error = error.localizedDescription }
+        do { try await work(); await load(api) } catch { model.handle(error); self.error = error.localizedDescription }
     }
 }
 

@@ -38,6 +38,9 @@ public final class PlannerAPI: @unchecked Sendable {
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
         let (data, status) = try await transport.send(request)
         let body = (try? JSON(data: data)) ?? .null
+        // Two-step (client-api §13): a verified authenticator factor needs an aal2 session.
+        // Refreshing does not change the session's level, so hand this straight to the app.
+        if status == 401, body["error"].string == "mfa_required" { throw APIError.twoStepRequired }
         if status == 401, !retried {
             let refreshed = try await TokenRefresher.shared.refresh(current: current, auth: auth)
             lock.withLock { _session = refreshed }

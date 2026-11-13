@@ -66,6 +66,45 @@ public struct AuthClient: Sendable {
                        email: body["user"]["email"].nonEmptyString ?? email)
     }
 
+    // MARK: Two-step (authenticator app)
+
+    /// The id of the user's verified authenticator (TOTP) factor, if any.
+    public func totpFactorId(session: Session) async throws -> String? {
+        let (status, body) = try await get(environment.authURL("user"), session: session)
+        guard status == 200 else { throw APIError.server(status: status, message: Self.errorMessage(body) ?? "") }
+        return body["factors"].array.first { $0["factor_type"].string == "totp" && $0["status"].string == "verified" }?["id"].string
+    }
+
+    /// Verifies an authenticator code and stores the upgraded (aal2) session.
+    @discardableResult
+    public func completeTwoStep(session: Session, code: String) async throws -> Session {
+        guard let factorId = try await totpFactorId(session: session) else {
+            throw APIError.server(status: 400, message: "No authenticator app is set up on this account.")
+        }
+        let (cs, cb) = try await post(environment.authURL("factors/\(factorId)/challenge"), [:], session: session)
+        guard cs == 200 || cs == 201, let challengeId = cb["id"].nonEmptyString else {
+            throw APIError.server(status: cs, message: Self.errorMessage(cb) ?? "Could not start verification")
+        }
+        let digits = code.filter(\.isNumber)
+        let (vs, vb) = try await post(environment.authURL("factors/\(factorId)/verify"), ["challenge_id": challengeId, "code": digits], session: session)
+        guard vs == 200, let access = vb["access_token"].nonEmptyString, let refresh = vb["refresh_token"].nonEmptyString else {
+            throw APIError.server(status: vs, message: Self.errorMessage(vb) ?? "Wrong code")
+        }
+        var upgraded = session
+        upgraded.accessToken = access
+        upgraded.refreshToken = refresh
+        store.save(upgraded)
+        return upgraded
+    }
+
+    func get(_ url: URL, session: Session) async throws -> (Int, JSON) {
+        var request = URLRequest(url: url)
+        request.setValue(environment.publishableKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+        let (data, status) = try await transport.send(request)
+        return (status, (try? JSON(data: data)) ?? .null)
+    }
+
     public func signOut() async {
         if let current = store.load() {
             var request = URLRequest(url: environment.authURL("logout"))
@@ -81,10 +120,11 @@ public struct AuthClient: Sendable {
         try await post(environment.authURL("token?grant_type=refresh_token"), ["refresh_token": refreshToken])
     }
 
-    func post(_ url: URL, _ payload: [String: Any]) async throws -> (Int, JSON) {
+    func post(_ url: URL, _ payload: [String: Any], session: Session? = nil) async throws -> (Int, JSON) {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(environment.publishableKey, forHTTPHeaderField: "apikey")
+        if let session { request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization") }
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
         let (data, status) = try await transport.send(request)

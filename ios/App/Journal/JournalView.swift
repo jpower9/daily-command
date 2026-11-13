@@ -22,11 +22,11 @@ final class JournalModel {
             payload = try await api.journal()
             error = nil
             if selectedNotebookId == nil { selectedNotebookId = payload?.notebooks.first?.id }
-        } catch { self.error = error.localizedDescription }
+        } catch { model.handle(error); self.error = error.localizedDescription }
     }
 
     func run(_ api: PlannerAPI, _ work: () async throws -> Void) async {
-        do { try await work(); await load(api) } catch { self.error = error.localizedDescription }
+        do { try await work(); await load(api) } catch { model.handle(error); self.error = error.localizedDescription }
     }
 
     var notebooks: [Notebook] { payload?.notebooks ?? [] }
@@ -365,6 +365,6 @@ struct NewNotebookSheet: View {
             await m.load(api)
             m.selectedNotebookId = id
             dismiss()
-        } catch { self.error = error.localizedDescription }
+        } catch { model.handle(error); self.error = error.localizedDescription }
     }
 }

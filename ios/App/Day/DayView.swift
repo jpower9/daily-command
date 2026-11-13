@@ -23,7 +23,7 @@ final class DayModel {
         do {
             payload = try await api.day(date)
             error = nil
-        } catch { self.error = error.localizedDescription }
+        } catch { model.handle(error); self.error = error.localizedDescription }
     }
 
     func shift(_ n: Int, _ api: PlannerAPI) async {
@@ -36,7 +36,7 @@ final class DayModel {
         do {
             try await api.saveDay(date, patch: patch)
             await load(api)
-        } catch { self.error = error.localizedDescription }
+        } catch { model.handle(error); self.error = error.localizedDescription }
     }
 
     func addTask(_ api: PlannerAPI) async {
@@ -48,14 +48,14 @@ final class DayModel {
         do {
             try await api.saveTask(id: nil, patch: patch)
             await load(api)
-        } catch { self.error = error.localizedDescription }
+        } catch { model.handle(error); self.error = error.localizedDescription }
     }
 
     func toggle(_ t: PlannerTask, _ api: PlannerAPI) async {
         do {
             try await api.saveTask(id: t.id, patch: ["status": t.status == .done ? "open" : "done"])
             await load(api)
-        } catch { self.error = error.localizedDescription }
+        } catch { model.handle(error); self.error = error.localizedDescription }
     }
 
     func setTop3(_ t: PlannerTask, _ on: Bool, _ api: PlannerAPI) async {
@@ -64,14 +64,14 @@ final class DayModel {
         do {
             try await api.saveTask(id: t.id, patch: ["is_top3": on, "top3_position": orNull(pos)])
             await load(api)
-        } catch { self.error = error.localizedDescription }
+        } catch { model.handle(error); self.error = error.localizedDescription }
     }
 
     func drop(_ t: PlannerTask, _ api: PlannerAPI) async {
         do {
             try await api.saveTask(id: t.id, patch: ["status": "dropped"])
             await load(api)
-        } catch { self.error = error.localizedDescription }
+        } catch { model.handle(error); self.error = error.localizedDescription }
     }
 
     func carry(_ api: PlannerAPI) async {
@@ -79,7 +79,7 @@ final class DayModel {
             let n = try await api.carryTasks(from: date)
             await load(api)
             if n == 0 { error = "Nothing open to carry." }
-        } catch { self.error = error.localizedDescription }
+        } catch { model.handle(error); self.error = error.localizedDescription }
     }
 }
 
@@ -459,7 +459,7 @@ struct NewEventSheet: View {
                                 _ = try await api.saveEvent(id: nil, accountId: accountId, title: title, startAt: start, endAt: end,
                                                             isAllDay: allDay, location: location.isEmpty ? nil : location, attendees: [])
                                 done(); dismiss()
-                            } catch { self.error = error.localizedDescription }
+                            } catch { model.handle(error); self.error = error.localizedDescription }
                         }
                     }
                     .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)

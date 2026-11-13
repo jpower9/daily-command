@@ -25,6 +25,8 @@ public struct URLSessionTransport: HTTPTransport {
 public enum APIError: LocalizedError, Equatable, Sendable {
     case notConfigured
     case notSignedIn
+    /// The account has an authenticator app (TOTP) enrolled; the session must complete that step.
+    case twoStepRequired
     case server(status: Int, message: String)
     case emptyResponse
 
@@ -32,6 +34,7 @@ public enum APIError: LocalizedError, Equatable, Sendable {
         switch self {
         case .notConfigured: "This build isn't set up to reach Daily Command."
         case .notSignedIn: "You're signed out. Sign in to continue."
+        case .twoStepRequired: "Enter the code from your authenticator app to continue."
         case let .server(status, message): message.isEmpty ? "Service error (\(status))." : message
         case .emptyResponse: "The server returned an empty response."
         }

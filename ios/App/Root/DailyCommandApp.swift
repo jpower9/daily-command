@@ -33,6 +33,8 @@ struct RootView: View {
             SignInView()
         case .signedIn:
             MainTabs()
+        case let .twoStep(session):
+            TwoStepView(session: session)
         }
     }
 }
