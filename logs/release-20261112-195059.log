@@ -1,0 +1,9 @@
+== dc-release Thu Nov 12 19:50:59 CST 2026 build=202611121950 branch=claude/asc-setup host=ExecCloneHQs-Mac-mini.local
+cloned 3a12d84
+ApiKey_7CDVODU54RU0.p8
+AuthKey_RWQT9P832G.p8
+AuthKey_YAPTWHXBNV.p8
+Xcode 27.0
+build 202611100954 uploaded=2026-11-10T07:57:40-08:00 processing=VALID expired=False nonExemptEncryption=False internalState=IN_BETA_TESTING externalState=READY_FOR_BETA_SUBMISSION
+group 'Internal' internal=True allBuilds=True testers=['jpower9@hotmail.com']
+== exit 0 Thu Nov 12 19:51:02 CST 2026
