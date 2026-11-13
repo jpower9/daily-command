@@ -1,0 +1,8 @@
+== dc-release Thu Nov 12 19:53:25 CST 2026 build=202611121953 branch=claude/asc-setup host=ExecCloneHQs-Mac-mini.local
+cloned 3b1a6a9
+ApiKey_7CDVODU54RU0.p8
+AuthKey_RWQT9P832G.p8
+AuthKey_YAPTWHXBNV.p8
+Xcode 27.0
+resend failed (404): {"errors": [{"id": "5e3dbf9d-68f3-4de7-8d17-0a038bb60349", "status": "404", "code": "NOT_FOUND", "title": "The specified resource does not exist", "detail": "There is no resource of type 'betaTesters' with id 'ce66ad1e-9456-499f-84ae-18f23d426a21'"}]}
+== exit 0 Thu Nov 12 19:53:27 CST 2026
