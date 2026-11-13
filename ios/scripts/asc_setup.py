@@ -143,6 +143,58 @@ def reinvite(token: str, email: str):
     print(f"invitation resent to {email}" if st in (200, 201) else f"resend failed ({st}): {json.dumps(res)[:300]}")
 
 
+def public_link(token: str, contact_email: str, contact_phone: str, first: str, last: str):
+    """External TestFlight group with a public install link; submits the newest build for beta review."""
+    st, res = call(token, "GET", f"/apps?filter[bundleId]={BUNDLE}&limit=1")
+    app_id = (res.get("data") or [{}])[0].get("id") if st == 200 else None
+    if not app_id:
+        sys.exit(f"no app record ({st})")
+    # Review contact (required before the first external build)
+    st, res = call(token, "GET", f"/apps/{app_id}/betaAppReviewDetail")
+    if st == 200:
+        did = res["data"]["id"]
+        call(token, "PATCH", f"/betaAppReviewDetails/{did}", {"data": {"type": "betaAppReviewDetails", "id": did, "attributes": {
+            "contactEmail": contact_email, "contactFirstName": first, "contactLastName": last, "contactPhone": contact_phone,
+            "notes": "Planner app. Sign in with any email: a 6-digit code is emailed (no password)."}}})
+    # Test information
+    st, res = call(token, "GET", f"/apps/{app_id}/betaAppLocalizations")
+    locs = res.get("data", []) if st == 200 else []
+    attrs = {"feedbackEmail": contact_email, "description": "Daily Command: plan the day, week, quarter and year, with tasks, calendar and goals in one place."}
+    if locs:
+        call(token, "PATCH", f"/betaAppLocalizations/{locs[0]['id']}", {"data": {"type": "betaAppLocalizations", "id": locs[0]["id"], "attributes": attrs}})
+    else:
+        call(token, "POST", "/betaAppLocalizations", {"data": {"type": "betaAppLocalizations", "attributes": {**attrs, "locale": "en-US"},
+             "relationships": {"app": {"data": {"type": "apps", "id": app_id}}}}})
+    # Newest valid build
+    st, res = call(token, "GET", f"/builds?filter[app]={app_id}&filter[processingState]=VALID&sort=-uploadedDate&limit=1")
+    builds = res.get("data", []) if st == 200 else []
+    if not builds:
+        sys.exit("no processed build")
+    build = builds[0]
+    # External group with public link
+    st, res = call(token, "GET", f"/apps/{app_id}/betaGroups?limit=50")
+    ext = [g for g in (res.get("data", []) if st == 200 else []) if not g["attributes"].get("isInternalGroup")]
+    if ext:
+        group = ext[0]
+        st, res = call(token, "PATCH", f"/betaGroups/{group['id']}", {"data": {"type": "betaGroups", "id": group["id"], "attributes": {
+            "publicLinkEnabled": True, "publicLinkLimitEnabled": True, "publicLinkLimit": 100}}})
+        if st == 200: group = res["data"]
+    else:
+        st, res = call(token, "POST", "/betaGroups", {"data": {"type": "betaGroups", "attributes": {
+            "name": "Public", "isInternalGroup": False, "publicLinkEnabled": True, "publicLinkLimitEnabled": True, "publicLinkLimit": 100},
+            "relationships": {"app": {"data": {"type": "apps", "id": app_id}}}}})
+        if st not in (200, 201):
+            sys.exit(f"could not create external group ({st}): {json.dumps(res)[:300]}")
+        group = res["data"]
+    st, res = call(token, "POST", f"/betaGroups/{group['id']}/relationships/builds", {"data": [{"type": "builds", "id": build["id"]}]})
+    print(f"build {build['attributes'].get('version')} -> group {group['attributes']['name']!r}: {st}")
+    st, res = call(token, "POST", "/betaAppReviewSubmissions", {"data": {"type": "betaAppReviewSubmissions",
+        "relationships": {"build": {"data": {"type": "builds", "id": build["id"]}}}}})
+    print(f"beta review submission: {st} {json.dumps(res)[:200] if st not in (200, 201) else res['data']['attributes'].get('betaReviewState')}")
+    st, res = call(token, "GET", f"/betaGroups/{group['id']}")
+    print("PUBLIC LINK:", res["data"]["attributes"].get("publicLink") if st == 200 else st)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--app-name", default="Daily Command by ExecClone")
@@ -151,6 +203,7 @@ def main():
     ap.add_argument("--add-internal-tester", metavar="EMAIL")
     ap.add_argument("--status", action="store_true")
     ap.add_argument("--reinvite", metavar="EMAIL")
+    ap.add_argument("--public-link", nargs=4, metavar=("EMAIL", "PHONE", "FIRST", "LAST"))
     args = ap.parse_args()
     key_id = os.environ.get("ASC_KEY_ID") or sys.exit("ASC_KEY_ID is required")
     issuer = os.environ.get("ASC_ISSUER_ID") or sys.exit("ASC_ISSUER_ID is required")
@@ -166,6 +219,8 @@ def main():
         return build_status(token)
     if args.reinvite:
         return reinvite(token, args.reinvite)
+    if args.public_link:
+        return public_link(token, *args.public_link)
 
     # 1. Bundle ID
     st, res = call(token, "GET", f"/bundleIds?filter[identifier]={BUNDLE}&limit=5")
