@@ -1,0 +1,11 @@
+== dc-release Sun Nov 15 18:21:05 CST 2026 build=202611151821 branch=claude/asc-setup host=ExecCloneHQs-Mac-mini.local DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+cloned fa6e8ab
+Xcode 27.0
+  cert: 'Apple Development: Joseph Newberry' DEVELOPMENT serial=6D12DC224DDDADC4A04B684549599FB4 exp=2027-11-14T00:44:29.000+00:00
+  cert: 'Apple Development: Created via API' DEVELOPMENT serial=CFA8AB57B6B60A377E2671833D11DE1 exp=2027-11-16T00:09:16.000+00:00
+    revoked -> 204
+  cert: 'Apple Development: Joseph Newberry' DEVELOPMENT serial=5CF44B5BDCD745A0CC89C7D6CC328E1F exp=2027-10-03T16:27:27.000+00:00
+revoked 1 orphaned development certificate(s)
+xcodegen Version: 2.46.0 at /opt/homebrew/bin/xcodegen
+Uploaded build 202611151821. It appears in TestFlight after Apple finishes processing (5–20 min).
+== exit 0 Sun Nov 15 18:22:40 CST 2026
