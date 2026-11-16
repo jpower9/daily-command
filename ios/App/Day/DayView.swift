@@ -27,6 +27,16 @@ final class DayModel {
         } catch { self.error = error.localizedDescription }
     }
 
+    /// The app came back after midnight while showing what was today: move to the new today.
+    /// A day the person navigated to on purpose stays put.
+    func followToday(_ api: PlannerAPI) async {
+        let now = Planning.today()
+        guard date != now, let shown = payload?.today, shown == date else { return }
+        date = now
+        payload = nil
+        await load(api)
+    }
+
     func shift(_ n: Int, _ api: PlannerAPI) async {
         date = Planning.addDays(date, n)
         payload = nil
@@ -101,6 +111,7 @@ final class DayModel {
 struct DayView: View {
     @Environment(AppModel.self) private var app
     @Environment(Navigator.self) private var nav
+    @Environment(\.scenePhase) private var scenePhase
     @State private var m = DayModel()
 
     var body: some View {
@@ -140,6 +151,9 @@ struct DayView: View {
             if let d = nav.take(.day), let api = app.api { m.date = d; m.payload = nil; Task { await m.load(api) } }
         }
         .refreshable { if let api = app.api { await m.load(api) } }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active, let api = app.api { Task { await m.followToday(api) } }
+        }
     }
 
     private var header: some View {
@@ -148,9 +162,15 @@ struct DayView: View {
             Spacer()
             VStack(spacing: 2) {
                 Text(DateText.long(m.date)).font(DC.Font.headline).foregroundStyle(DC.text)
-                if !m.isToday {
-                    Button("Today") { Task { if let api = app.api { m.date = Planning.today(); m.payload = nil; await m.load(api) } } }
+                if m.isToday {
+                    Text("Today").font(DC.Font.small).foregroundStyle(DC.goldText)
+                } else {
+                    // A button, shaped like one, so it can't be read as "this day is today".
+                    Button("Go to today") { Task { if let api = app.api { m.date = Planning.today(); m.payload = nil; await m.load(api) } } }
                         .font(DC.Font.small)
+                        .buttonStyle(.bordered)
+                        .buttonBorderShape(.capsule)
+                        .controlSize(.small)
                 }
             }
             Spacer()
