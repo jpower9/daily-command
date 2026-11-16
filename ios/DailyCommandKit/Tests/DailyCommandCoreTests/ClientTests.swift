@@ -206,9 +206,25 @@ struct CacheTests {
         #expect(a.cachedDay("2026-11-12") == nil)
         let live = try await a.day("2026-11-12")
         let replay = a.cachedDay("2026-11-12")
-        #expect(replay == live)
+        #expect(replay?.tasks == live.tasks)
+        #expect(replay?.date == live.date)
         #expect(replay?.tasks.first?.title == "Call Will")
         #expect(a.cachedDay("2026-11-13") == nil)   // keyed by parameters
+    }
+
+    @Test func cachedTodayIsTheDevicesTodayNotTheDayItWasSaved() async throws {
+        let cache = MemoryResponseCache()
+        let t = FakeTransport([(#"{"date":"2026-11-13","today":"2026-11-13","tasks":[]}"#, 200)])
+        let a = api(t, cache)
+        _ = try await a.day("2026-11-13")
+        // Saved on Friday the 13th; read back on Sunday the 15th.
+        let sunday = Planning.utc.date(from: DateComponents(year: 2026, month: 11, day: 15, hour: 12))!
+        let replay = a.cached("plannerDay", ["date": "2026-11-13"], now: sunday)
+        #expect(replay?["today"].string == Planning.today(sunday))
+        #expect(replay?["date"].string == "2026-11-13")
+        // Responses without a `today` are returned untouched.
+        cache.write(ResponseCache.key("plannerJournal", [:]), .object(["notes": .array([])]))
+        #expect(a.cached("plannerJournal", now: sunday) == .object(["notes": .array([])]))
     }
 
     @Test func writesAreNotCached() async throws {

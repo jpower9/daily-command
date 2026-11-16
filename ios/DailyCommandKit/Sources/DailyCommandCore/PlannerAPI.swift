@@ -42,11 +42,17 @@ public final class PlannerAPI: @unchecked Sendable {
     }
 
     /// The last response the service gave for this read action, if any. Screens show it at once,
-    /// then replace it with the live answer from `call`.
-    public func cached(_ action: String, _ params: sending [String: Any] = [:]) -> JSON? {
+    /// then replace it with the live answer from `call`. Its `today` is the day it was fetched, so
+    /// it is replaced with the device's today: a page saved on Friday must not call Friday today.
+    public func cached(_ action: String, _ params: sending [String: Any] = [:], now: Date = Date()) -> JSON? {
         guard Self.cachedActions.contains(action), let cache else { return nil }
         let payload = JSONNull.resolve(params) as? [String: Any] ?? [:]
-        return cache.read(ResponseCache.key(action, payload))
+        guard let body = cache.read(ResponseCache.key(action, payload)) else { return nil }
+        if case var .object(o) = body, o["today"] != nil {
+            o["today"] = .string(Planning.today(now))
+            return .object(o)
+        }
+        return body
     }
 
     private func perform(payload: [String: Any], retried: Bool) async throws -> JSON {
